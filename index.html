@@ -1,0 +1,966 @@
+<!DOCTYPE html>
+<html lang="es-CL">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Reservar hora — Agenda de pacientes</title>
+<meta name="description" content="Elige tu hora de atención psicológica, online o presencial.">
+
+<!-- ══════════════════════════════════════════════════════════════════
+     ÚNICO BLOQUE QUE HAY QUE EDITAR
+     API       : la URL /exec que entrega Apps Script al implementar
+     CLIENT_ID : ID de cliente OAuth (opcional, para entrar con Google)
+     ══════════════════════════════════════════════════════════════════ -->
+<script>
+window.CONFIG = {
+  API       : '',
+  CLIENT_ID : '',
+  NOMBRE    : 'Consulta psicológica',
+  BAJADA    : 'Elige el día y la hora que te acomode. Te llega la confirmación por correo.'
+};
+</script>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,600;12..96,800&family=Public+Sans:ital,wght@0,400;0,500;0,600;1,400&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+<style>
+:root{
+  --ink:#2E2A38; --ink-2:#5B5566; --mute:#8A8394;
+  --paper:#F7F5FA; --surf:#FFFFFF; --line:#E7E2F0;
+  --accent:#5B4B8A; --accent-soft:#EFE9F8; --accent-ink:#3D3160;
+  --ok:#2F7D64; --alerta:#B4443C;
+
+  --nna-bg:#EFE0F5;   --nna-bd:#D9BCE8;  --nna-ink:#6B3E8C;
+  --onl-bg:#FCEBD8;   --onl-bd:#F1CFA6;  --onl-ink:#96590F;
+  --adu-bg:#DDEBFB;   --adu-bd:#B6D3F3;  --adu-ink:#1F5D9E;
+  --amb-bg:#E3F3DF;   --amb-bd:#BEE0B6;  --amb-ink:#2F6B3A;
+
+  --r:12px; --sombra:0 1px 2px rgba(46,42,56,.05), 0 8px 24px -12px rgba(46,42,56,.18);
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{
+  background:var(--paper); color:var(--ink);
+  font-family:'Public Sans',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;
+  font-size:16px; line-height:1.55; -webkit-font-smoothing:antialiased;
+}
+h1,h2,h3{font-family:'Bricolage Grotesque','Public Sans',sans-serif; margin:0; line-height:1.12; letter-spacing:-.015em}
+a{color:var(--accent)}
+.mono{font-family:'IBM Plex Mono',ui-monospace,monospace; font-variant-numeric:tabular-nums}
+.envoltura{max-width:1180px; margin:0 auto; padding:0 20px}
+.oculto{display:none !important}
+
+/* ── Encabezado ─────────────────────────────────────────── */
+.tope{background:var(--surf); border-bottom:1px solid var(--line)}
+.tope-int{display:flex; align-items:center; justify-content:space-between; gap:16px; padding:18px 20px; max-width:1180px; margin:0 auto}
+.marca{display:flex; align-items:center; gap:12px; min-width:0}
+.sello{width:38px;height:38px;border-radius:11px;background:var(--ink);color:#fff;display:grid;place-items:center;
+       font-family:'Bricolage Grotesque',sans-serif;font-weight:800;font-size:17px;flex:none}
+.marca b{font-family:'Bricolage Grotesque',sans-serif;font-weight:600;font-size:17px;display:block;
+         white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.marca span{font-size:12.5px;color:var(--mute);display:block}
+.tope-acc{display:flex;gap:8px;flex:none}
+
+/* ── Botones ────────────────────────────────────────────── */
+.btn{font:inherit;font-weight:600;font-size:14.5px;border-radius:9px;padding:9px 15px;border:1px solid var(--line);
+     background:var(--surf);color:var(--ink);cursor:pointer;transition:.15s;white-space:nowrap}
+.btn:hover{border-color:#CFC5E4;background:#FCFBFE}
+.btn:focus-visible{outline:2.5px solid var(--accent);outline-offset:2px}
+.btn.principal{background:var(--accent);border-color:var(--accent);color:#fff}
+.btn.principal:hover{background:#4C3E76}
+.btn.suave{background:var(--accent-soft);border-color:transparent;color:var(--accent-ink)}
+.btn.peligro{color:var(--alerta);border-color:#EBD3D1}
+.btn.peligro:hover{background:#FCF3F2}
+.btn.mini{padding:6px 11px;font-size:13px;border-radius:8px}
+.btn:disabled{opacity:.5;cursor:not-allowed}
+.btn-icono{width:38px;height:38px;padding:0;display:grid;place-items:center;font-size:17px}
+
+/* ── Portada ────────────────────────────────────────────── */
+.intro{padding:34px 0 22px}
+.intro h1{font-size:clamp(28px,4.4vw,44px);font-weight:800;max-width:16ch}
+.intro p{color:var(--ink-2);max-width:52ch;margin:12px 0 0;font-size:16.5px}
+
+/* ── Barra de semana ────────────────────────────────────── */
+.barra{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin:24px 0 14px}
+.nav-sem{display:flex;align-items:center;gap:6px;background:var(--surf);border:1px solid var(--line);border-radius:11px;padding:4px}
+.nav-sem .rango{font-family:'Bricolage Grotesque',sans-serif;font-weight:600;font-size:14.5px;padding:0 10px;min-width:172px;text-align:center}
+.filtros{display:flex;gap:6px;flex-wrap:wrap;margin-left:auto}
+.chip{font:inherit;font-size:13.5px;font-weight:500;border:1px solid var(--line);background:var(--surf);
+      color:var(--ink-2);border-radius:99px;padding:7px 14px;cursor:pointer;transition:.15s}
+.chip[aria-pressed="true"]{background:var(--ink);border-color:var(--ink);color:#fff}
+.chip:focus-visible{outline:2.5px solid var(--accent);outline-offset:2px}
+
+/* ── Tablero semanal ────────────────────────────────────── */
+.tablero{background:var(--surf);border:1px solid var(--line);border-radius:16px;box-shadow:var(--sombra);overflow:hidden}
+.grilla{display:grid;grid-template-columns:62px repeat(7,1fr)}
+.gc{border-right:1px solid var(--line);border-bottom:1px solid var(--line);min-height:46px;position:relative}
+.gc:nth-child(8n){border-right:none}
+.cab{padding:11px 6px;text-align:center;background:#FBFAFD;position:sticky;top:0;z-index:2}
+.cab .d{font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--mute);font-weight:600}
+.cab .n{font-family:'Bricolage Grotesque',sans-serif;font-size:19px;font-weight:600;margin-top:1px}
+.cab.hoy .n{color:var(--accent)}
+.cab.hoy{background:var(--accent-soft)}
+.hh{display:grid;place-items:center;font-size:12.5px;color:var(--mute);background:#FBFAFD}
+.cupo{position:absolute;inset:4px;border-radius:8px;border:1px solid;cursor:pointer;font:inherit;font-size:12.5px;
+      font-weight:600;display:grid;place-items:center;text-align:center;line-height:1.2;padding:2px;transition:.13s}
+.cupo:hover{transform:translateY(-1px);filter:brightness(.97)}
+.cupo:focus-visible{outline:2.5px solid var(--accent);outline-offset:1px}
+.cupo.nna{background:var(--nna-bg);border-color:var(--nna-bd);color:var(--nna-ink)}
+.cupo.onl{background:var(--onl-bg);border-color:var(--onl-bd);color:var(--onl-ink)}
+.cupo.adu{background:var(--adu-bg);border-color:var(--adu-bd);color:var(--adu-ink)}
+.cupo.amb{background:var(--amb-bg);border-color:var(--amb-bd);color:var(--amb-ink)}
+
+/* ── Vista móvil por día ────────────────────────────────── */
+.dias{display:flex;flex-direction:column}
+.dia{border-bottom:1px solid var(--line);padding:16px}
+.dia:last-child{border-bottom:none}
+.dia h3{font-size:16px;font-weight:600;text-transform:capitalize}
+.dia .vacio{color:var(--mute);font-size:14px;margin-top:4px}
+.horas{display:flex;flex-wrap:wrap;gap:8px;margin-top:11px}
+.horas .cupo{position:static;inset:auto;padding:10px 14px;font-size:14px;min-width:86px}
+
+/* ── Leyenda ────────────────────────────────────────────── */
+.leyenda{display:flex;gap:18px;flex-wrap:wrap;margin:16px 2px 0;font-size:13px;color:var(--ink-2)}
+.leyenda i{width:13px;height:13px;border-radius:4px;display:inline-block;vertical-align:-2px;margin-right:7px;border:1px solid}
+.li-nna i{background:var(--nna-bg);border-color:var(--nna-bd)}
+.li-onl i{background:var(--onl-bg);border-color:var(--onl-bd)}
+.li-adu i{background:var(--adu-bg);border-color:var(--adu-bd)}
+.li-amb i{background:var(--amb-bg);border-color:var(--amb-bd)}
+
+/* ── Estados / avisos ───────────────────────────────────── */
+.aviso{border-radius:12px;padding:14px 16px;font-size:14.5px;margin:16px 0;border:1px solid}
+.aviso.info{background:var(--accent-soft);border-color:#DDD2F0;color:var(--accent-ink)}
+.aviso.mal{background:#FCF3F2;border-color:#EBD3D1;color:var(--alerta)}
+.aviso.bien{background:#EAF5F1;border-color:#C3E2D6;color:var(--ok)}
+.vacio-tablero{padding:52px 24px;text-align:center;color:var(--mute)}
+.vacio-tablero b{display:block;color:var(--ink);font-family:'Bricolage Grotesque',sans-serif;font-size:18px;margin-bottom:6px}
+.cargando{padding:52px;text-align:center;color:var(--mute);font-size:14.5px}
+
+/* ── Modal ──────────────────────────────────────────────── */
+.telon{position:fixed;inset:0;background:rgba(46,42,56,.55);backdrop-filter:blur(3px);z-index:60;
+       display:grid;place-items:center;padding:16px;overflow:auto}
+.modal{background:var(--surf);border-radius:18px;width:100%;max-width:490px;box-shadow:0 24px 64px -16px rgba(46,42,56,.4);
+       animation:sube .22s ease}
+@keyframes sube{from{opacity:0;transform:translateY(12px)}}
+@media (prefers-reduced-motion:reduce){.modal{animation:none}.cupo:hover{transform:none}}
+.modal-tope{padding:20px 22px 0;display:flex;justify-content:space-between;align-items:flex-start;gap:12px}
+.modal-tope h2{font-size:21px;font-weight:700}
+.modal-tope .cuando{color:var(--ink-2);font-size:14.5px;margin-top:5px;text-transform:capitalize}
+.modal-cuerpo{padding:18px 22px 22px}
+.cerrar{border:none;background:transparent;font-size:24px;line-height:1;color:var(--mute);cursor:pointer;padding:2px 6px;border-radius:8px}
+.cerrar:hover{background:var(--paper);color:var(--ink)}
+
+/* ── Formularios ────────────────────────────────────────── */
+.campo{margin-bottom:14px}
+.campo label{display:block;font-size:13.5px;font-weight:600;margin-bottom:5px}
+.campo .pista{font-weight:400;color:var(--mute);font-size:12.5px}
+input,select,textarea{width:100%;font:inherit;font-size:15px;padding:10px 12px;border:1px solid var(--line);
+       border-radius:9px;background:var(--surf);color:var(--ink)}
+input:focus,select,textarea:focus{outline:none}
+input:focus-visible,select:focus-visible,textarea:focus-visible{outline:2.5px solid var(--accent);outline-offset:1px;border-color:var(--accent)}
+textarea{resize:vertical;min-height:74px}
+.trampa{position:absolute;left:-9999px;width:1px;height:1px;opacity:0}
+.opciones{display:flex;gap:8px}
+.opciones label{flex:1;border:1px solid var(--line);border-radius:10px;padding:11px;text-align:center;cursor:pointer;
+                font-size:14px;font-weight:600;margin:0;transition:.15s}
+.opciones input{position:absolute;opacity:0;width:1px;height:1px}
+.opciones input:checked + span{color:var(--accent-ink)}
+.opciones label:has(input:checked){border-color:var(--accent);background:var(--accent-soft)}
+.opciones label:has(input:focus-visible){outline:2.5px solid var(--accent);outline-offset:2px}
+
+/* ── Pie ────────────────────────────────────────────────── */
+.pie{margin:56px 0 0;border-top:1px solid var(--line);background:var(--surf)}
+.pie-int{max-width:1180px;margin:0 auto;padding:26px 20px;display:flex;justify-content:space-between;
+         gap:16px;flex-wrap:wrap;font-size:13.5px;color:var(--mute)}
+.pie a{color:var(--ink-2);text-decoration:none;border-bottom:1px solid var(--line)}
+
+/* ── Panel admin ────────────────────────────────────────── */
+.pestanas{display:flex;gap:4px;border-bottom:1px solid var(--line);margin:22px 0 20px;overflow-x:auto}
+.pest{font:inherit;font-size:14.5px;font-weight:600;border:none;background:transparent;color:var(--mute);
+      padding:11px 15px;cursor:pointer;border-bottom:2.5px solid transparent;white-space:nowrap}
+.pest[aria-selected="true"]{color:var(--ink);border-bottom-color:var(--accent)}
+.tarjeta{background:var(--surf);border:1px solid var(--line);border-radius:14px;padding:18px;box-shadow:var(--sombra);margin-bottom:16px}
+.tarjeta h3{font-size:16.5px;font-weight:600;margin-bottom:4px}
+.tarjeta .sub{color:var(--mute);font-size:13.5px;margin-bottom:14px}
+.reserva{display:flex;gap:14px;align-items:flex-start;padding:15px 0;border-bottom:1px solid var(--line);flex-wrap:wrap}
+.reserva:last-child{border-bottom:none;padding-bottom:0}
+.reserva .fh{flex:none;width:112px}
+.reserva .fh .f{font-family:'Bricolage Grotesque',sans-serif;font-weight:600;font-size:14.5px;text-transform:capitalize}
+.reserva .fh .h{font-size:13px;color:var(--mute)}
+.reserva .qui{flex:1 1 210px;min-width:0}
+.reserva .qui b{font-weight:600;font-size:15px}
+.reserva .qui div{font-size:13.5px;color:var(--ink-2);word-break:break-word}
+.reserva .acc{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+.etq{font-size:11.5px;font-weight:600;padding:3px 9px;border-radius:99px;border:1px solid;letter-spacing:.02em}
+.etq.reservado{background:var(--onl-bg);border-color:var(--onl-bd);color:var(--onl-ink)}
+.etq.confirmado{background:#EAF5F1;border-color:#C3E2D6;color:var(--ok)}
+.etq.bloqueado{background:#F1EFF4;border-color:var(--line);color:var(--mute)}
+.etq.disponible{background:var(--amb-bg);border-color:var(--amb-bd);color:var(--amb-ink)}
+.rejilla{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px}
+.bloque-plt{display:grid;grid-template-columns:1.1fr .8fr .8fr 1fr 1fr auto;gap:8px;align-items:center;margin-bottom:8px}
+.bloque-plt select,.bloque-plt input{padding:8px 10px;font-size:14px}
+.entrar{max-width:400px;margin:56px auto}
+
+@media (max-width:900px){
+  .filtros{margin-left:0;width:100%}
+  .bloque-plt{grid-template-columns:1fr 1fr;gap:6px}
+  .reserva .fh{width:100%}
+}
+@media (max-width:620px){
+  .intro{padding:26px 0 16px}
+  .nav-sem{width:100%}
+  .nav-sem .rango{flex:1}
+  .tope-int{padding:14px 16px}
+  .envoltura{padding:0 16px}
+}
+</style>
+</head>
+<body>
+
+<header class="tope">
+  <div class="tope-int">
+    <div class="marca">
+      <div class="sello" id="sello">A</div>
+      <div>
+        <b id="marca-nombre">Consulta psicológica</b>
+        <span id="marca-sub">Reserva de horas</span>
+      </div>
+    </div>
+    <div class="tope-acc">
+      <button class="btn" id="btn-mi-hora">Ya tengo hora</button>
+      <button class="btn suave oculto" id="btn-salir">Salir</button>
+    </div>
+  </div>
+</header>
+
+<!-- ═══════════ VISTA PACIENTE ═══════════ -->
+<main id="vista-publica">
+  <div class="envoltura">
+    <section class="intro">
+      <h1 id="titulo">Reserva tu hora</h1>
+      <p id="bajada">Elige el día y la hora que te acomode. Te llega la confirmación por correo.</p>
+    </section>
+
+    <div id="aviso-config"></div>
+
+    <div class="barra">
+      <div class="nav-sem">
+        <button class="btn btn-icono" id="sem-atras" aria-label="Semana anterior">‹</button>
+        <div class="rango" id="sem-rango">—</div>
+        <button class="btn btn-icono" id="sem-adelante" aria-label="Semana siguiente">›</button>
+      </div>
+      <button class="btn mini" id="sem-hoy">Hoy</button>
+      <div class="filtros" role="group" aria-label="Filtrar horas">
+        <button class="chip" data-filtro="publico" data-valor="" aria-pressed="true">Todas</button>
+        <button class="chip" data-filtro="publico" data-valor="Adulto" aria-pressed="false">Adultos</button>
+        <button class="chip" data-filtro="publico" data-valor="NNA" aria-pressed="false">Niños y adolescentes</button>
+        <button class="chip" data-filtro="modalidad" data-valor="Online" aria-pressed="false">Online</button>
+        <button class="chip" data-filtro="modalidad" data-valor="Presencial" aria-pressed="false">Presencial</button>
+      </div>
+    </div>
+
+    <div class="tablero" id="tablero"><div class="cargando">Cargando la agenda…</div></div>
+
+    <div class="leyenda">
+      <span class="li-nna"><i></i>Niños y adolescentes, presencial</span>
+      <span class="li-adu"><i></i>Adultos, presencial</span>
+      <span class="li-onl"><i></i>Online</span>
+      <span class="li-amb"><i></i>Online o presencial, tú eliges</span>
+    </div>
+  </div>
+</main>
+
+<!-- ═══════════ PANEL ADMIN ═══════════ -->
+<main id="vista-admin" class="oculto">
+  <div class="envoltura">
+
+    <div id="admin-entrar" class="entrar">
+      <div class="tarjeta">
+        <h3>Entrar a la agenda</h3>
+        <p class="sub">Solo el profesional a cargo puede administrar las horas.</p>
+        <div id="boton-google"></div>
+        <div id="zona-pin">
+          <div class="campo" style="margin-top:14px">
+            <label for="pin">Clave de acceso</label>
+            <input type="password" id="pin" inputmode="numeric" autocomplete="current-password" placeholder="••••">
+          </div>
+          <button class="btn principal" id="btn-pin" style="width:100%">Entrar</button>
+        </div>
+        <div id="err-entrar"></div>
+      </div>
+      <p style="text-align:center"><a href="#">Volver al sitio de reservas</a></p>
+    </div>
+
+    <div id="admin-panel" class="oculto">
+      <section class="intro" style="padding-bottom:0">
+        <h1 style="font-size:32px">Agenda</h1>
+        <p id="admin-quien">—</p>
+      </section>
+
+      <div class="pestanas" role="tablist">
+        <button class="pest" role="tab" data-tab="reservas" aria-selected="true">Reservas</button>
+        <button class="pest" role="tab" data-tab="horas" aria-selected="false">Horas de la semana</button>
+        <button class="pest" role="tab" data-tab="semana" aria-selected="false">Semana tipo</button>
+        <button class="pest" role="tab" data-tab="mantencion" aria-selected="false">Mantención</button>
+      </div>
+
+      <div id="admin-aviso"></div>
+      <div id="tab-reservas"></div>
+      <div id="tab-horas" class="oculto"></div>
+      <div id="tab-semana" class="oculto"></div>
+      <div id="tab-mantencion" class="oculto"></div>
+    </div>
+  </div>
+</main>
+
+<footer class="pie">
+  <div class="pie-int">
+    <span id="pie-nombre">Consulta psicológica</span>
+    <span><a href="#admin" id="link-admin">Administrar la agenda</a></span>
+  </div>
+</footer>
+
+<div id="modales"></div>
+
+<script src="https://accounts.google.com/gsi/client" async defer></script>
+<script>
+/* ══════════════════════════════════════════════════════════
+   ESTADO
+   ══════════════════════════════════════════════════════════ */
+const S = {
+  cupos: [], agenda: [], plantilla: [], ajustes: {},
+  filtro: { publico:'', modalidad:'' },
+  lunes: lunesDe(new Date()),
+  token: sessionStorage.getItem('agenda_token') || '',
+  correo: sessionStorage.getItem('agenda_correo') || '',
+  tab: 'reservas'
+};
+const DIAS_CORTOS = ['LUN','MAR','MIÉ','JUE','VIE','SÁB','DOM'];
+const MESES = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
+const MESES_C = ['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
+
+const $  = (s, c) => (c || document).querySelector(s);
+const $$ = (s, c) => Array.from((c || document).querySelectorAll(s));
+
+/* ══════════════════════════════════════════════════════════
+   UTILIDADES DE FECHA (todo en texto aaaa-mm-dd, sin husos raros)
+   ══════════════════════════════════════════════════════════ */
+function iso(d){ return d.getFullYear()+'-'+p2(d.getMonth()+1)+'-'+p2(d.getDate()); }
+function p2(n){ return ('0'+n).slice(-2); }
+function deIso(s){ const [a,m,d] = s.split('-').map(Number); return new Date(a, m-1, d); }
+function lunesDe(d){ const x = new Date(d); const dw = (x.getDay()+6)%7; x.setDate(x.getDate()-dw); x.setHours(0,0,0,0); return x; }
+function masDias(d,n){ const x = new Date(d); x.setDate(x.getDate()+n); return x; }
+function fechaLarga(s){ const d = deIso(s); return ['domingo','lunes','martes','miércoles','jueves','viernes','sábado'][d.getDay()]+' '+d.getDate()+' de '+MESES[d.getMonth()]; }
+function fechaCorta(s){ const d = deIso(s); return ['dom','lun','mar','mié','jue','vie','sáb'][d.getDay()]+' '+d.getDate()+' '+MESES_C[d.getMonth()]; }
+
+/* ══════════════════════════════════════════════════════════
+   LLAMADAS AL SERVIDOR
+   ══════════════════════════════════════════════════════════ */
+async function api(accion, datos){
+  if (!CONFIG.API) return { ok:false, error:'Falta conectar la agenda con el servidor.' };
+  const cuerpo = Object.assign({ accion:accion }, datos || {});
+  if (S.token) cuerpo.token = S.token;
+  try{
+    const r = await fetch(CONFIG.API, {
+      method:'POST', redirect:'follow',
+      headers:{ 'Content-Type':'text/plain;charset=utf-8' },
+      body: JSON.stringify(cuerpo)
+    });
+    return await r.json();
+  }catch(e){
+    return { ok:false, error:'No hay conexión con la agenda. Revisa tu internet e intenta de nuevo.' };
+  }
+}
+
+/* ══════════════════════════════════════════════════════════
+   CLASIFICACIÓN VISUAL DE UNA HORA
+   ══════════════════════════════════════════════════════════ */
+function clase(c){
+  if (c.modalidad === 'Ambas') return 'amb';
+  if (c.modalidad === 'Online') return 'onl';
+  return c.publico === 'NNA' ? 'nna' : (c.publico === 'Adulto' ? 'adu' : 'nna');
+}
+function rotulo(c){
+  if (c.modalidad === 'Ambas') return 'Online o presencial';
+  if (c.modalidad === 'Online') return 'Online';
+  return c.publico === 'NNA' ? 'Presencial · niños y adolescentes'
+       : c.publico === 'Adulto' ? 'Presencial · adultos' : 'Presencial';
+}
+function pasaFiltro(c){
+  const f = S.filtro;
+  if (f.publico && c.publico !== f.publico && c.publico !== 'Todos') return false;
+  if (f.modalidad && c.modalidad !== f.modalidad && c.modalidad !== 'Ambas') return false;
+  return true;
+}
+
+/* ══════════════════════════════════════════════════════════
+   TABLERO DE LA SEMANA
+   ══════════════════════════════════════════════════════════ */
+function pintarTablero(){
+  const cont = $('#tablero');
+  const dias = [];
+  for (let i = 0; i < 7; i++) dias.push(iso(masDias(S.lunes, i)));
+  $('#sem-rango').textContent = rangoSemana();
+
+  const dentro = S.cupos.filter(c => dias.indexOf(c.fecha) >= 0 && pasaFiltro(c));
+
+  if (!dentro.length){
+    cont.innerHTML = '<div class="vacio-tablero"><b>No hay horas libres esta semana</b>'
+      + (S.cupos.length ? 'Prueba con la semana siguiente o saca los filtros.' : 'Todavía no se han cargado horas a la agenda.')
+      + '</div>';
+    return;
+  }
+
+  if (window.innerWidth < 860) return pintarLista(cont, dias, dentro);
+
+  const horas = [...new Set(dentro.map(c => c.inicio))].sort();
+  const hoy = iso(new Date());
+  let h = '<div class="grilla"><div class="gc cab"></div>';
+  dias.forEach((f, i) => {
+    const d = deIso(f);
+    h += '<div class="gc cab'+(f===hoy?' hoy':'')+'"><div class="d">'+DIAS_CORTOS[i]+'</div><div class="n">'+d.getDate()+'</div></div>';
+  });
+  horas.forEach(hh => {
+    h += '<div class="gc hh mono">'+hh+'</div>';
+    dias.forEach(f => {
+      const c = dentro.find(x => x.fecha === f && x.inicio === hh);
+      h += '<div class="gc">' + (c
+        ? '<button class="cupo '+clase(c)+'" data-id="'+c.id+'" title="'+rotulo(c)+'">'+hh+'</button>'
+        : '') + '</div>';
+    });
+  });
+  cont.innerHTML = h + '</div>';
+  enlazarCupos();
+}
+
+function pintarLista(cont, dias, dentro){
+  let h = '<div class="dias">';
+  dias.forEach(f => {
+    const delDia = dentro.filter(c => c.fecha === f).sort((a,b) => a.inicio < b.inicio ? -1 : 1);
+    if (!delDia.length) return;
+    h += '<div class="dia"><h3>'+fechaLarga(f)+'</h3><div class="horas">';
+    delDia.forEach(c => {
+      h += '<button class="cupo '+clase(c)+'" data-id="'+c.id+'"><span class="mono">'+c.inicio+'</span></button>';
+    });
+    h += '</div></div>';
+  });
+  cont.innerHTML = h + '</div>';
+  enlazarCupos();
+}
+
+function enlazarCupos(){
+  $$('.cupo', $('#tablero')).forEach(b => b.addEventListener('click', () => abrirReserva(b.dataset.id)));
+}
+
+function rangoSemana(){
+  const a = S.lunes, b = masDias(S.lunes, 6);
+  const mesA = MESES_C[a.getMonth()], mesB = MESES_C[b.getMonth()];
+  return a.getDate()+' '+mesA+' — '+b.getDate()+' '+mesB;
+}
+
+async function cargarDisponibilidad(){
+  const r = await api('disponibilidad');
+  if (!r.ok){ $('#tablero').innerHTML = '<div class="vacio-tablero"><b>No pudimos cargar la agenda</b>'+r.error+'</div>'; return; }
+  S.cupos = r.datos || [];
+  S.ajustes = r.ajustes || {};
+  if (S.ajustes.profesional){
+    $('#marca-nombre').textContent = S.ajustes.profesional;
+    $('#pie-nombre').textContent = S.ajustes.profesional;
+    $('#sello').textContent = S.ajustes.profesional.trim()[0].toUpperCase();
+  }
+  pintarTablero();
+}
+
+/* ══════════════════════════════════════════════════════════
+   MODAL: RESERVAR
+   ══════════════════════════════════════════════════════════ */
+function modal(html, ancho){
+  $('#modales').innerHTML = '<div class="telon" id="telon"><div class="modal" role="dialog" aria-modal="true"'
+    + (ancho ? ' style="max-width:'+ancho+'px"' : '') + '>' + html + '</div></div>';
+  const t = $('#telon');
+  t.addEventListener('mousedown', e => { if (e.target === t) cerrarModal(); });
+  document.addEventListener('keydown', escapar);
+  const foco = $('input,select,textarea,button', t); if (foco) foco.focus();
+}
+function cerrarModal(){ $('#modales').innerHTML = ''; document.removeEventListener('keydown', escapar); }
+function escapar(e){ if (e.key === 'Escape') cerrarModal(); }
+
+function abrirReserva(id){
+  const c = S.cupos.find(x => x.id === id);
+  if (!c) return;
+  const elige = c.modalidad === 'Ambas';
+  modal(
+    '<div class="modal-tope"><div><h2>Reservar hora</h2>'
+    + '<div class="cuando">'+fechaLarga(c.fecha)+' · '+c.inicio+' h · '+rotulo(c)+'</div></div>'
+    + '<button class="cerrar" id="x" aria-label="Cerrar">×</button></div>'
+    + '<div class="modal-cuerpo">'
+    + (elige ? '<div class="campo"><label>¿Cómo prefieres la sesión?</label><div class="opciones">'
+        + '<label><input type="radio" name="mod" value="Online" checked><span>Online</span></label>'
+        + '<label><input type="radio" name="mod" value="Presencial"><span>Presencial</span></label>'
+        + '</div></div>' : '')
+    + '<div class="campo"><label for="f-nombre">Nombre y apellido</label><input id="f-nombre" autocomplete="name"></div>'
+    + '<div class="campo"><label for="f-email">Correo <span class="pista">— ahí te llega la confirmación</span></label><input id="f-email" type="email" autocomplete="email" inputmode="email"></div>'
+    + '<div class="campo"><label for="f-fono">Teléfono</label><input id="f-fono" type="tel" autocomplete="tel" inputmode="tel" placeholder="+56 9 …"></div>'
+    + '<div class="campo"><label for="f-notas">¿Algo que quieras contar antes? <span class="pista">— opcional</span></label><textarea id="f-notas" maxlength="500"></textarea></div>'
+    + '<input class="trampa" id="f-web" tabindex="-1" autocomplete="off" aria-hidden="true">'
+    + '<div id="err-res"></div>'
+    + '<button class="btn principal" id="f-enviar" style="width:100%;padding:12px">Reservar esta hora</button>'
+    + '<p style="font-size:12.5px;color:var(--mute);margin:12px 0 0;text-align:center">Guardamos solo tus datos de contacto para agendar la sesión.</p>'
+    + '</div>');
+
+  $('#x').addEventListener('click', cerrarModal);
+  $('#f-enviar').addEventListener('click', async () => {
+    const b = $('#f-enviar');
+    const modSel = $('input[name=mod]:checked');
+    b.disabled = true; b.textContent = 'Reservando…';
+    $('#err-res').innerHTML = '';
+    const r = await api('reservar', {
+      id: c.id,
+      nombre: $('#f-nombre').value,
+      email: $('#f-email').value,
+      telefono: $('#f-fono').value,
+      notas: $('#f-notas').value,
+      modalidad: modSel ? modSel.value : c.modalidad,
+      web: $('#f-web').value
+    });
+    if (!r.ok){
+      $('#err-res').innerHTML = '<div class="aviso mal">'+r.error+'</div>';
+      b.disabled = false; b.textContent = 'Reservar esta hora';
+      return;
+    }
+    S.cupos = S.cupos.filter(x => x.id !== c.id);
+    pintarTablero();
+    listo(r.reserva);
+  });
+}
+
+function listo(r){
+  modal(
+    '<div class="modal-tope"><div><h2>Tu hora quedó tomada</h2>'
+    + '<div class="cuando">'+fechaLarga(r.fecha)+' · '+r.inicio+' h</div></div>'
+    + '<button class="cerrar" id="x" aria-label="Cerrar">×</button></div>'
+    + '<div class="modal-cuerpo">'
+    + '<div class="aviso bien">Te mandamos un correo con los datos. Si no lo ves, revisa spam o promociones.</div>'
+    + '<table style="width:100%;font-size:14.5px">'
+    + '<tr><td style="color:var(--mute);padding:6px 0;width:120px">Modalidad</td><td>'+r.modalidad+'</td></tr>'
+    + (r.meet ? '<tr><td style="color:var(--mute);padding:6px 0">Videollamada</td><td><a href="'+r.meet+'" target="_blank" rel="noopener">Enlace de Google Meet</a></td></tr>' : '')
+    + (r.modalidad === 'Presencial' && S.ajustes.direccion ? '<tr><td style="color:var(--mute);padding:6px 0">Dónde</td><td>'+S.ajustes.direccion+'</td></tr>' : '')
+    + '<tr><td style="color:var(--mute);padding:6px 0">Código</td><td><b class="mono">'+r.id+'</b></td></tr>'
+    + '</table>'
+    + '<p style="font-size:13px;color:var(--mute);margin:14px 0 18px">Guarda ese código: con él y tu correo puedes revisar o anular la hora desde “Ya tengo hora”.</p>'
+    + '<button class="btn principal" id="ok" style="width:100%">Listo</button></div>');
+  $('#x').addEventListener('click', cerrarModal);
+  $('#ok').addEventListener('click', cerrarModal);
+}
+
+/* ══════════════════════════════════════════════════════════
+   MODAL: YA TENGO HORA
+   ══════════════════════════════════════════════════════════ */
+function abrirMiHora(){
+  modal(
+    '<div class="modal-tope"><div><h2>Revisar mi hora</h2>'
+    + '<div class="cuando">Busca con el código que te llegó por correo</div></div>'
+    + '<button class="cerrar" id="x" aria-label="Cerrar">×</button></div>'
+    + '<div class="modal-cuerpo">'
+    + '<div class="campo"><label for="m-id">Código de la hora</label><input id="m-id" placeholder="H26…" autocapitalize="characters"></div>'
+    + '<div class="campo"><label for="m-mail">Tu correo</label><input id="m-mail" type="email" inputmode="email"></div>'
+    + '<div id="m-res"></div>'
+    + '<button class="btn principal" id="m-buscar" style="width:100%">Buscar</button></div>');
+  $('#x').addEventListener('click', cerrarModal);
+  $('#m-buscar').addEventListener('click', async () => {
+    const b = $('#m-buscar'); b.disabled = true; b.textContent = 'Buscando…';
+    const r = await api('miReserva', { id: $('#m-id').value.trim(), email: $('#m-mail').value.trim() });
+    b.disabled = false; b.textContent = 'Buscar';
+    if (!r.ok){ $('#m-res').innerHTML = '<div class="aviso mal">'+r.error+'</div>'; return; }
+    const x = r.reserva;
+    $('#m-res').innerHTML =
+      '<div class="aviso info"><b style="text-transform:capitalize">'+fechaLarga(x.fecha)+' · '+x.inicio+' h</b><br>'
+      + x.modalidad + ' · ' + (x.estado === 'confirmado' ? 'confirmada' : 'reservada')
+      + (x.meet ? '<br><a href="'+x.meet+'" target="_blank" rel="noopener">Enlace de la videollamada</a>' : '')
+      + '</div><button class="btn peligro" id="m-anular" style="width:100%;margin-bottom:12px">Anular esta hora</button>';
+    $('#m-anular').addEventListener('click', async () => {
+      if (!confirm('¿Seguro que quieres anular esta hora?')) return;
+      const q = await api('anularPaciente', { id: x.id, email: $('#m-mail').value.trim() });
+      $('#m-res').innerHTML = q.ok
+        ? '<div class="aviso bien">Hora anulada. Puedes tomar otra cuando quieras.</div>'
+        : '<div class="aviso mal">'+q.error+'</div>';
+      if (q.ok) cargarDisponibilidad();
+    });
+  });
+}
+
+/* ══════════════════════════════════════════════════════════
+   ADMIN
+   ══════════════════════════════════════════════════════════ */
+function esAdmin(){ return location.hash.replace('#','').split('?')[0] === 'admin'; }
+
+function enrutar(){
+  const admin = esAdmin();
+  $('#vista-publica').classList.toggle('oculto', admin);
+  $('#vista-admin').classList.toggle('oculto', !admin);
+  $('#btn-mi-hora').classList.toggle('oculto', admin);
+  $('#btn-salir').classList.toggle('oculto', !(admin && S.token));
+  $('#marca-sub').textContent = admin ? 'Panel de administración' : 'Reserva de horas';
+  if (admin){
+    if (S.token) { mostrarPanel(); cargarAgenda(); }
+    else { $('#admin-entrar').classList.remove('oculto'); $('#admin-panel').classList.add('oculto'); prepararGoogle(); }
+  } else {
+    cargarDisponibilidad();
+  }
+}
+
+function prepararGoogle(){
+  if (!CONFIG.CLIENT_ID || !window.google || !google.accounts) return;
+  $('#zona-pin').classList.add('oculto');
+  google.accounts.id.initialize({ client_id: CONFIG.CLIENT_ID, callback: entrarConGoogle });
+  google.accounts.id.renderButton($('#boton-google'), { theme:'outline', size:'large', width:352, text:'signin_with', locale:'es' });
+}
+
+async function entrarConGoogle(resp){
+  $('#err-entrar').innerHTML = '<div class="aviso info">Validando tu cuenta…</div>';
+  const r = await api('ingresar', { credential: resp.credential });
+  aplicarIngreso(r);
+}
+
+async function entrarConPin(){
+  const b = $('#btn-pin'); b.disabled = true; b.textContent = 'Entrando…';
+  const r = await api('ingresar', { pin: $('#pin').value });
+  b.disabled = false; b.textContent = 'Entrar';
+  aplicarIngreso(r);
+}
+
+function aplicarIngreso(r){
+  if (!r.ok){ $('#err-entrar').innerHTML = '<div class="aviso mal">'+r.error+'</div>'; return; }
+  S.token = r.token; S.correo = r.correo;
+  sessionStorage.setItem('agenda_token', r.token);
+  sessionStorage.setItem('agenda_correo', r.correo);
+  $('#err-entrar').innerHTML = '';
+  $('#btn-salir').classList.remove('oculto');
+  mostrarPanel(); cargarAgenda();
+}
+
+function salir(){
+  S.token = ''; S.correo = '';
+  sessionStorage.removeItem('agenda_token'); sessionStorage.removeItem('agenda_correo');
+  location.hash = '';
+}
+
+function mostrarPanel(){
+  $('#admin-entrar').classList.add('oculto');
+  $('#admin-panel').classList.remove('oculto');
+  $('#admin-quien').textContent = S.correo ? 'Sesión de ' + S.correo : '';
+}
+
+async function cargarAgenda(){
+  avisoAdmin('info', 'Cargando la agenda…');
+  const r = await api('agenda');
+  if (!r.ok){
+    if (/sesión/i.test(r.error)) { salir(); return; }
+    avisoAdmin('mal', r.error); return;
+  }
+  S.agenda = r.datos || [];
+  S.plantilla = r.plantilla || [];
+  S.ajustes = r.ajustes || {};
+  avisoAdmin('', '');
+  pintarTab();
+}
+
+function avisoAdmin(tipo, txt){
+  $('#admin-aviso').innerHTML = txt ? '<div class="aviso '+tipo+'">'+txt+'</div>' : '';
+}
+
+function pintarTab(){
+  ['reservas','horas','semana','mantencion'].forEach(t => {
+    $('#tab-'+t).classList.toggle('oculto', t !== S.tab);
+  });
+  $$('.pest').forEach(b => b.setAttribute('aria-selected', String(b.dataset.tab === S.tab)));
+  if (S.tab === 'reservas')   pintarReservas();
+  if (S.tab === 'horas')      pintarHoras();
+  if (S.tab === 'semana')     pintarSemanaTipo();
+  if (S.tab === 'mantencion') pintarMantencion();
+}
+
+/* ── Reservas ──────────────────────────────────────────── */
+function pintarReservas(){
+  const hoy = iso(new Date());
+  const res = S.agenda.filter(x => ['reservado','confirmado'].includes(x.estado));
+  const prox = res.filter(x => x.fecha >= hoy);
+  const pas  = res.filter(x => x.fecha < hoy);
+
+  let h = '<div class="tarjeta"><h3>Próximas sesiones</h3><p class="sub">'
+    + (prox.length ? prox.length + (prox.length === 1 ? ' hora tomada' : ' horas tomadas') : 'Sin horas tomadas por ahora')
+    + '</p>' + (prox.length ? prox.map(filaReserva).join('') : '') + '</div>';
+
+  if (pas.length){
+    h += '<div class="tarjeta"><h3>Sesiones recientes</h3><p class="sub">Últimos 7 días</p>'
+       + pas.map(x => filaReserva(x, true)).join('') + '</div>';
+  }
+  $('#tab-reservas').innerHTML = h;
+  enlazarAcciones($('#tab-reservas'));
+}
+
+function filaReserva(x, pasada){
+  return '<div class="reserva">'
+    + '<div class="fh"><div class="f">'+fechaCorta(x.fecha)+'</div><div class="h mono">'+x.inicio+' – '+x.fin+'</div></div>'
+    + '<div class="qui"><b>'+esc(x.nombre)+'</b> <span class="etq '+x.estado+'">'+x.estado+'</span>'
+    + '<div>'+esc(x.email)+' · '+esc(x.telefono)+'</div>'
+    + '<div>'+x.modalidad+(x.publico !== 'Todos' ? ' · '+x.publico : '')
+    + (x.meet ? ' · <a href="'+x.meet+'" target="_blank" rel="noopener">Meet</a>' : '')+'</div>'
+    + (x.notas ? '<div style="color:var(--mute);margin-top:3px">“'+esc(x.notas)+'”</div>' : '')
+    + '<div class="mono" style="color:var(--mute);font-size:12px">'+x.id+'</div></div>'
+    + (pasada ? '' : '<div class="acc">'
+        + (x.estado === 'reservado' ? '<button class="btn mini principal" data-acc="confirmar" data-id="'+x.id+'">Confirmar</button>' : '')
+        + '<button class="btn mini peligro" data-acc="cancelar" data-id="'+x.id+'">Cancelar</button></div>')
+    + '</div>';
+}
+
+/* ── Horas de la semana ────────────────────────────────── */
+function pintarHoras(){
+  const dias = []; for (let i=0;i<7;i++) dias.push(iso(masDias(S.lunes,i)));
+  const dentro = S.agenda.filter(x => dias.includes(x.fecha)).sort((a,b)=> (a.fecha+a.inicio) < (b.fecha+b.inicio) ? -1 : 1);
+
+  let h = '<div class="tarjeta"><div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:14px">'
+    + '<div><h3>Semana del '+rangoSemana()+'</h3><p class="sub" style="margin:0">Libera, bloquea o elimina horas puntuales</p></div>'
+    + '<div class="nav-sem"><button class="btn btn-icono" data-acc="sem-" aria-label="Semana anterior">‹</button>'
+    + '<div class="rango">'+rangoSemana()+'</div>'
+    + '<button class="btn btn-icono" data-acc="sem+" aria-label="Semana siguiente">›</button></div></div>';
+
+  if (!dentro.length){
+    h += '<p style="color:var(--mute)">Esta semana no tiene horas cargadas.</p>';
+  } else {
+    dias.forEach(f => {
+      const dd = dentro.filter(x => x.fecha === f);
+      if (!dd.length) return;
+      h += '<div style="padding:12px 0;border-bottom:1px solid var(--line)">'
+        + '<div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap">'
+        + '<b style="text-transform:capitalize;font-family:Bricolage Grotesque,sans-serif">'+fechaLarga(f)+'</b>'
+        + '<button class="btn mini" data-acc="bloquear-dia" data-fecha="'+f+'">Bloquear todo el día</button></div>'
+        + '<div class="horas" style="margin-top:9px">';
+      dd.forEach(x => {
+        const ocupada = ['reservado','confirmado'].includes(x.estado);
+        h += '<button class="btn mini" data-acc="hora" data-id="'+x.id+'" style="'
+          + (x.estado === 'bloqueado' ? 'opacity:.5;text-decoration:line-through' : '')
+          + (ocupada ? 'border-color:var(--onl-bd);background:var(--onl-bg)' : '') + '">'
+          + '<span class="mono">'+x.inicio+'</span>'
+          + (ocupada ? ' · '+esc(x.nombre.split(' ')[0]) : '') + '</button>';
+      });
+      h += '</div></div>';
+    });
+  }
+
+  h += '<div style="margin-top:18px"><h3 style="font-size:15px">Agregar una hora suelta</h3>'
+    + '<div class="rejilla" style="margin-top:10px">'
+    + '<div class="campo" style="margin:0"><label for="n-fecha">Día</label><input type="date" id="n-fecha" value="'+iso(new Date())+'"></div>'
+    + '<div class="campo" style="margin:0"><label for="n-hora">Hora</label><input type="time" id="n-hora" step="900" value="10:00"></div>'
+    + '<div class="campo" style="margin:0"><label for="n-pub">Para</label><select id="n-pub"><option value="Todos">Cualquiera</option><option value="Adulto">Adultos</option><option value="NNA">Niños y adolescentes</option></select></div>'
+    + '<div class="campo" style="margin:0"><label for="n-mod">Modalidad</label><select id="n-mod"><option value="Ambas">Online o presencial</option><option value="Online">Online</option><option value="Presencial">Presencial</option></select></div>'
+    + '</div><button class="btn principal" data-acc="crear-hora" style="margin-top:12px">Agregar hora</button></div>';
+
+  $('#tab-horas').innerHTML = h + '</div>';
+  enlazarAcciones($('#tab-horas'));
+}
+
+/* ── Semana tipo ───────────────────────────────────────── */
+function pintarSemanaTipo(){
+  const nom = ['','Lunes','Martes','Miércoles','Jueves','Viernes','Sábado','Domingo'];
+  let h = '<div class="tarjeta"><h3>Semana tipo</h3>'
+    + '<p class="sub">Los bloques que se repiten todas las semanas. Al guardar, el sistema crea las horas que falten hasta '
+    + (S.ajustes.meses || 3) + ' meses hacia adelante. Las horas ya reservadas no se tocan.</p>'
+    + '<div id="plt">';
+  S.plantilla.forEach((b, i) => { h += filaPlantilla(b, i, nom); });
+  h += '</div><div style="display:flex;gap:8px;margin-top:14px;flex-wrap:wrap">'
+    + '<button class="btn" data-acc="plt-agregar">Agregar bloque</button>'
+    + '<button class="btn principal" data-acc="plt-guardar">Guardar y generar horas</button></div></div>';
+  $('#tab-semana').innerHTML = h;
+  enlazarAcciones($('#tab-semana'));
+}
+
+function filaPlantilla(b, i, nom){
+  const sel = (v, o) => v === o ? ' selected' : '';
+  return '<div class="bloque-plt" data-i="'+i+'">'
+    + '<select data-c="dia">' + [1,2,3,4,5,6,7].map(d => '<option value="'+d+'"'+sel(String(b.dia), String(d))+'>'+nom[d]+'</option>').join('') + '</select>'
+    + '<input type="time" data-c="desde" step="900" value="'+b.desde+'">'
+    + '<input type="time" data-c="hasta" step="900" value="'+b.hasta+'">'
+    + '<select data-c="publico"><option value="Todos"'+sel(b.publico,'Todos')+'>Cualquiera</option><option value="Adulto"'+sel(b.publico,'Adulto')+'>Adultos</option><option value="NNA"'+sel(b.publico,'NNA')+'>Niños y adol.</option></select>'
+    + '<select data-c="modalidad"><option value="Ambas"'+sel(b.modalidad,'Ambas')+'>Online o presencial</option><option value="Online"'+sel(b.modalidad,'Online')+'>Online</option><option value="Presencial"'+sel(b.modalidad,'Presencial')+'>Presencial</option></select>'
+    + '<button class="btn mini peligro" data-acc="plt-borrar" data-i="'+i+'" aria-label="Quitar bloque">×</button></div>';
+}
+
+function leerPlantilla(){
+  return $$('.bloque-plt').map(f => ({
+    dia:       Number($('[data-c=dia]', f).value),
+    desde:     $('[data-c=desde]', f).value,
+    hasta:     $('[data-c=hasta]', f).value,
+    publico:   $('[data-c=publico]', f).value,
+    modalidad: $('[data-c=modalidad]', f).value
+  }));
+}
+
+/* ── Mantención ────────────────────────────────────────── */
+function pintarMantencion(){
+  const libres = S.agenda.filter(x => x.estado === 'disponible').length;
+  $('#tab-mantencion').innerHTML =
+    '<div class="tarjeta"><h3>Estado de la agenda</h3><p class="sub">Lo que hay cargado ahora</p>'
+    + '<div class="rejilla">'
+    + tarjetaDato('Horas libres', libres)
+    + tarjetaDato('Horas tomadas', S.agenda.filter(x => ['reservado','confirmado'].includes(x.estado)).length)
+    + tarjetaDato('Horizonte', (S.ajustes.meses || 3) + ' meses')
+    + '</div></div>'
+    + '<div class="tarjeta"><h3>Tareas</h3><p class="sub">El sistema hace esto solo cada madrugada, pero puedes forzarlo</p>'
+    + '<div style="display:flex;gap:8px;flex-wrap:wrap">'
+    + '<button class="btn" data-acc="regenerar">Crear horas que falten</button>'
+    + '<button class="btn" data-acc="limpiar">Borrar horas antiguas</button>'
+    + '<button class="btn" data-acc="recargar">Recargar</button></div></div>';
+  enlazarAcciones($('#tab-mantencion'));
+}
+function tarjetaDato(k, v){
+  return '<div style="background:var(--paper);border-radius:10px;padding:14px">'
+    + '<div style="font-size:12px;color:var(--mute);letter-spacing:.06em;text-transform:uppercase">'+k+'</div>'
+    + '<div style="font-family:Bricolage Grotesque,sans-serif;font-size:26px;font-weight:700">'+v+'</div></div>';
+}
+
+/* ── Acciones del panel ────────────────────────────────── */
+function enlazarAcciones(cont){
+  $$('[data-acc]', cont).forEach(b => b.addEventListener('click', () => accion(b)));
+}
+
+async function accion(b){
+  const a = b.dataset.acc, id = b.dataset.id;
+
+  if (a === 'sem-'){ S.lunes = masDias(S.lunes, -7); pintarHoras(); return; }
+  if (a === 'sem+'){ S.lunes = masDias(S.lunes,  7); pintarHoras(); return; }
+  if (a === 'recargar') return cargarAgenda();
+
+  if (a === 'plt-agregar'){
+    S.plantilla = leerPlantilla();
+    S.plantilla.push({ dia:1, desde:'09:00', hasta:'12:00', publico:'Todos', modalidad:'Ambas' });
+    pintarSemanaTipo(); return;
+  }
+  if (a === 'plt-borrar'){
+    S.plantilla = leerPlantilla().filter((_, i) => i !== Number(b.dataset.i));
+    pintarSemanaTipo(); return;
+  }
+  if (a === 'plt-guardar'){
+    correr(b, async () => {
+      const r = await api('guardarPlantilla', { plantilla: leerPlantilla() });
+      if (!r.ok) return r;
+      return await api('regenerar');
+    });
+    return;
+  }
+
+  if (a === 'confirmar') return correr(b, () => api('estado', { id:id, estado:'confirmado' }));
+
+  if (a === 'cancelar'){
+    const m = prompt('¿Por qué se cancela? (el paciente lo verá en el correo)');
+    if (m === null) return;
+    return correr(b, () => api('estado', { id:id, estado:'cancelado', motivo:m }));
+  }
+
+  if (a === 'bloquear-dia'){
+    if (!confirm('¿Bloquear todas las horas de ese día? A quien tenga hora tomada se le avisará.')) return;
+    return correr(b, () => api('bloquearDia', { fecha:b.dataset.fecha }));
+  }
+
+  if (a === 'hora'){
+    const x = S.agenda.find(y => y.id === id);
+    if (x) menuHora(x);
+    return;
+  }
+
+  if (a === 'crear-hora'){
+    return correr(b, () => api('crearHora', {
+      fecha: $('#n-fecha').value, inicio: $('#n-hora').value,
+      publico: $('#n-pub').value, modalidad: $('#n-mod').value
+    }));
+  }
+
+  if (a === 'regenerar') return correr(b, () => api('regenerar'));
+  if (a === 'limpiar'){
+    if (!confirm('Se borrarán de la hoja las horas anteriores a la fecha de corte. Las que tuvieron paciente quedan en la pestaña Historial. ¿Seguir?')) return;
+    return correr(b, () => api('limpiar'));
+  }
+
+  if (a === 'estado-hora'){
+    return correr(b, () => api('estado', { id:id, estado:b.dataset.estado }), true);
+  }
+  if (a === 'eliminar-hora'){
+    if (!confirm('¿Eliminar esta hora de la agenda?')) return;
+    return correr(b, () => api('eliminar', { id:id }), true);
+  }
+}
+
+async function correr(b, fn, cerrar){
+  const txt = b.textContent; b.disabled = true; b.textContent = 'Un momento…';
+  const r = await fn();
+  b.disabled = false; b.textContent = txt;
+  if (cerrar) cerrarModal();
+  if (!r.ok){ avisoAdmin('mal', r.error); if (/sesión/i.test(r.error)) salir(); return; }
+  avisoAdmin('bien', r.mensaje || 'Listo');
+  await cargarAgenda();
+  setTimeout(() => avisoAdmin('', ''), 4000);
+}
+
+function menuHora(x){
+  const ocupada = ['reservado','confirmado'].includes(x.estado);
+  modal('<div class="modal-tope"><div><h2 style="text-transform:capitalize">'+fechaCorta(x.fecha)+' · '+x.inicio+'</h2>'
+    + '<div class="cuando">'+x.modalidad+(x.publico!=='Todos'?' · '+x.publico:'')+' · '+x.estado+'</div></div>'
+    + '<button class="cerrar" id="x" aria-label="Cerrar">×</button></div>'
+    + '<div class="modal-cuerpo">'
+    + (ocupada ? '<div class="aviso info"><b>'+esc(x.nombre)+'</b><br>'+esc(x.email)+' · '+esc(x.telefono)+'</div>' : '')
+    + '<div style="display:flex;flex-direction:column;gap:8px">'
+    + (x.estado !== 'disponible' ? '<button class="btn" data-acc="estado-hora" data-estado="disponible" data-id="'+x.id+'">Dejar disponible'+(ocupada?' (avisa al paciente)':'')+'</button>' : '')
+    + (x.estado !== 'bloqueado' ? '<button class="btn" data-acc="estado-hora" data-estado="bloqueado" data-id="'+x.id+'">Bloquear esta hora</button>' : '')
+    + '<button class="btn peligro" data-acc="eliminar-hora" data-id="'+x.id+'">Eliminar de la agenda</button>'
+    + '</div></div>');
+  $('#x').addEventListener('click', cerrarModal);
+  enlazarAcciones($('#modales'));
+}
+
+function esc(s){ return String(s||'').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+
+/* ══════════════════════════════════════════════════════════
+   ARRANQUE
+   ══════════════════════════════════════════════════════════ */
+$('#marca-nombre').textContent = CONFIG.NOMBRE;
+$('#pie-nombre').textContent   = CONFIG.NOMBRE;
+$('#bajada').textContent       = CONFIG.BAJADA;
+$('#sello').textContent        = CONFIG.NOMBRE.trim()[0].toUpperCase();
+
+if (!CONFIG.API){
+  $('#aviso-config').innerHTML = '<div class="aviso mal"><b>Falta conectar la agenda.</b><br>'
+    + 'Abre <code>index.html</code>, busca <code>window.CONFIG</code> arriba del todo y pega en <code>API</code> '
+    + 'la URL que termina en <code>/exec</code> que entrega Apps Script al implementar la aplicación web.</div>';
+}
+
+$('#sem-atras').addEventListener('click', () => { S.lunes = masDias(S.lunes,-7); pintarTablero(); });
+$('#sem-adelante').addEventListener('click', () => { S.lunes = masDias(S.lunes, 7); pintarTablero(); });
+$('#sem-hoy').addEventListener('click', () => { S.lunes = lunesDe(new Date()); pintarTablero(); });
+$('#btn-mi-hora').addEventListener('click', abrirMiHora);
+$('#btn-salir').addEventListener('click', salir);
+$('#btn-pin').addEventListener('click', entrarConPin);
+$('#pin').addEventListener('keydown', e => { if (e.key === 'Enter') entrarConPin(); });
+
+$$('.chip').forEach(c => c.addEventListener('click', () => {
+  const f = c.dataset.filtro, v = c.dataset.valor;
+  S.filtro[f] = (S.filtro[f] === v) ? '' : v;
+  if (!v){ S.filtro = { publico:'', modalidad:'' }; }
+  $$('.chip').forEach(o => {
+    const activo = o.dataset.valor
+      ? S.filtro[o.dataset.filtro] === o.dataset.valor
+      : (!S.filtro.publico && !S.filtro.modalidad);
+    o.setAttribute('aria-pressed', String(activo));
+  });
+  pintarTablero();
+}));
+
+$$('.pest').forEach(b => b.addEventListener('click', () => { S.tab = b.dataset.tab; pintarTab(); }));
+
+let t; window.addEventListener('resize', () => { clearTimeout(t); t = setTimeout(() => { if (!esAdmin()) pintarTablero(); }, 180); });
+window.addEventListener('hashchange', enrutar);
+window.addEventListener('load', () => { if (esAdmin() && !S.token) prepararGoogle(); });
+enrutar();
+</script>
+</body>
+</html>
