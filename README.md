@@ -45,7 +45,7 @@ siempre pasa por el script.
    - `PROFESIONAL` — el nombre que firma los correos
    - `EMAIL_AVISOS` — dónde llegan los avisos de reserva nueva
    - `DIRECCION`, `TELEFONO`
-   - `ADMINS` — los correos que pueden administrar (hoy: `rolandoaraos@gmail.com`)
+   - `ADMINS` — los correos que pueden administrar (hoy: `...`)
    - `DURACION_MIN` (50), `MESES_ADELANTE` (3), `RETENCION_DIAS` (15)
 6. Selecciona la función **`instalar`** y dale ▶ *Ejecutar*.
    Google va a pedir permisos: *Configuración avanzada → Ir a (proyecto) → Permitir*.
