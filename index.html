@@ -19,8 +19,8 @@ window.CONFIG = {
   CLIENT_ID : '805327209585-k8arl2eekbgljj0fghg2c7vhtc2q3gp5.apps.googleusercontent.com',
   NOMBRE    : 'Consulta psicológica',
   BAJADA    : 'Elige el día y la hora que te acomode. Te llega la confirmación por correo.',
-  FOTO      : '',
-  FOTO_PIE  : '',   // ej. 'Psicólogo clínico · Reg. 12345'
+  FOTO      : 'foto.jpg',
+  FOTO_PIE  : 'Psicólogo · Universidad San Sebastián',   // ej. 'Psicólogo clínico · Reg. 12345'
   WSP_MENSAJE : 'Hola, Cris. Soy paciente tuyo, tengo una consulta'
 };
 </script>
@@ -278,6 +278,7 @@ textarea{resize:vertical;min-height:74px}
       <div><b id="marca-nombre">Consulta psicológica</b><span id="marca-sub">Reserva de horas</span></div>
     </div>
     <div class="tope-acc">
+      <a class="btn" href="sobre-mi.html" id="link-sobre">Sobre mí</a>
       <button class="btn" id="btn-mi-hora">Ya tengo hora</button>
       <button class="btn suave oculto" id="btn-salir">Salir</button>
     </div>
@@ -351,9 +352,11 @@ textarea{resize:vertical;min-height:74px}
     <span id="pie-nombre">Consulta psicológica</span>
     <span id="pie-contacto"></span>
     <span>
-     <a href="privacidad.html">Privacidad</a> ·
-     <a href="terminos.html">Condiciones</a> ·
-     <a href="#admin">Administrar la agenda</a></span>
+      <a href="sobre-mi.html">Sobre mí</a> ·
+      <a href="privacidad.html">Privacidad</a> ·
+      <a href="terminos.html">Condiciones</a> ·
+      <a href="#admin">Administrar la agenda</a>
+    </span>
   </div>
 </footer>
 
@@ -459,6 +462,13 @@ function botonesContacto(conMapa){
     + (w ? '<a class="btn" href="'+w+'" target="_blank" rel="noopener" style="text-decoration:none;background:#25D366;border-color:#25D366;color:#fff">Escribir por WhatsApp</a>' : '')
     + '</div>';
 }
+/** Lunes de la primera semana, desde la que se mira, que tenga horas libres. */
+function primerLunesConHoras(desde){
+  const base = desde || S.lunes;
+  const futuras = S.cupos.filter(c => deIso(c.fecha) >= base).sort((a,b)=> a.fecha<b.fecha ? -1 : 1);
+  return futuras.length ? lunesDe(deIso(futuras[0].fecha)) : null;
+}
+
 function rangoSemana(l){
   const a = l || S.lunes, b = masDias(a,6);
   return a.getDate()+' '+MESES_C[a.getMonth()]+' — '+b.getDate()+' '+MESES_C[b.getMonth()];
@@ -471,9 +481,16 @@ function pintarTablero(){
   const dentro = S.cupos.filter(c => dias.includes(c.fecha) && pasaFiltro(c));
 
   if (!dentro.length){
+    const sig = primerLunesConHoras(masDias(S.lunes, 7));
     cont.innerHTML = '<div class="vacio-tablero"><b>No hay horas libres esta semana</b>'
-      + (S.cupos.length ? 'Prueba con la semana siguiente o saca los filtros.' : 'Todavía no se han cargado horas a la agenda.')
+      + (sig
+          ? '<div style="margin-bottom:16px">La próxima con horas disponibles es la del '+rangoSemana(sig)+'.</div>'
+            + '<button class="btn principal" id="ir-sig">Ver esa semana</button>'
+          : (S.cupos.length ? 'Prueba con otra semana.'
+                            : 'Por ahora no hay horas publicadas. Escríbeme por WhatsApp y lo vemos.'))
       + '</div>';
+    const b = $('#ir-sig', cont);
+    if (b) b.addEventListener('click', ()=>{ S.lunes = sig; pintarTablero() });
     return;
   }
   if (window.innerWidth < 860) return pintarLista(cont, dias, dentro);
@@ -519,6 +536,13 @@ async function cargarDisponibilidad(){
   }
   const w = urlWsp();
   if (w) $('#pie-contacto').innerHTML = '<a href="'+w+'" target="_blank" rel="noopener">Escribir por WhatsApp</a>';
+
+  // Si la semana en pantalla no tiene nada, saltar sola a la primera que sí
+  if (!S.movido){
+    S.movido = true;
+    const hay = S.cupos.some(c => { const d=deIso(c.fecha); return d>=S.lunes && d<masDias(S.lunes,7) });
+    if (!hay){ const sig = primerLunesConHoras(S.lunes); if (sig) S.lunes = sig; }
+  }
   pintarTablero();
 }
 
@@ -630,6 +654,7 @@ function enrutar(){
   $('#vista-admin').classList.toggle('oculto', !admin);
   $('#pie').classList.toggle('oculto', admin);
   $('#btn-mi-hora').classList.toggle('oculto', admin);
+  $('#link-sobre').classList.toggle('oculto', admin);
   $('#btn-salir').classList.toggle('oculto', !(admin && S.token));
   $('#marca-sub').textContent = admin ? 'Panel de administración' : 'Reserva de horas';
   if (admin){
