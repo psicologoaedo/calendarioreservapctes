@@ -350,7 +350,10 @@ textarea{resize:vertical;min-height:74px}
   <div class="pie-int">
     <span id="pie-nombre">Consulta psicológica</span>
     <span id="pie-contacto"></span>
-    <span><a href="#admin">Administrar la agenda</a></span>
+    <span>
+     <a href="privacidad.html">Privacidad</a> ·
+     <a href="terminos.html">Condiciones</a> ·
+     <a href="#admin">Administrar la agenda</a></span>
   </div>
 </footer>
 
@@ -549,7 +552,8 @@ function abrirReserva(id){
     + '<input class="trampa" id="f-web" tabindex="-1" autocomplete="off" aria-hidden="true">'
     + '<div id="err-res"></div>'
     + '<button class="btn principal" id="f-enviar" style="width:100%;padding:12px">Reservar esta hora</button>'
-    + '<p style="font-size:12.5px;color:var(--mute);margin:12px 0 0;text-align:center">Guardamos solo tus datos de contacto para agendar la sesión.</p></div>');
+    + '<p style="font-size:12.5px;color:var(--mute);margin:12px 0 0;text-align:center">Guardamos solo tus datos de contacto para agendar la sesión. '
+    + '<a href="privacidad.html" target="_blank" rel="noopener">Cómo se usan</a>.</p></div>');
 
   $('#x').addEventListener('click', cerrarModal);
   $('#f-enviar').addEventListener('click', async ()=>{
