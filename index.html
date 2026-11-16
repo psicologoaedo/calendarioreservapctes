@@ -1,0 +1,1177 @@
+<!DOCTYPE html>
+<html lang="es-CL">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Reservar hora — Agenda de pacientes</title>
+<meta name="description" content="Elige tu hora de atención psicológica, online o presencial.">
+
+<!-- ══════════════════════════════════════════════════════════════════
+     ÚNICO BLOQUE QUE HAY QUE EDITAR
+     API       : la URL /exec que entrega Apps Script al implementar
+     CLIENT_ID : ID de cliente OAuth (para entrar con Google)
+     FOTO      : URL de la foto del profesional. Mientras esté vacía,
+                 el sitio no muestra nada; al pegarla aparece sola.
+     ══════════════════════════════════════════════════════════════════ -->
+<script>
+window.CONFIG = {
+  API       : '',
+  CLIENT_ID : '',
+  NOMBRE    : 'Consulta psicológica',
+  BAJADA    : 'Elige el día y la hora que te acomode. Te llega la confirmación por correo.',
+  FOTO      : '',
+  FOTO_PIE  : '',   // ej. 'Psicólogo clínico · Reg. 12345'
+  WSP_MENSAJE : 'Hola, Cris. Soy paciente tuyo, tengo una consulta'
+};
+</script>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,600;12..96,800&family=Public+Sans:ital,wght@0,400;0,500;0,600;1,400&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+<style>
+:root{
+  --ink:#2E2A38; --ink-2:#5B5566; --mute:#8A8394;
+  --paper:#F7F5FA; --surf:#FFFFFF; --line:#E7E2F0; --line-2:#F1EEF7;
+  --accent:#5B4B8A; --accent-soft:#EFE9F8; --accent-ink:#3D3160;
+  --ok:#2F7D64; --ok-soft:#EAF5F1; --alerta:#B4443C; --alerta-soft:#FCF3F2;
+  --aviso:#96590F; --aviso-soft:#FCEBD8;
+
+  --nna-bg:#EFE0F5; --nna-bd:#D9BCE8; --nna-ink:#6B3E8C;
+  --onl-bg:#FCEBD8; --onl-bd:#F1CFA6; --onl-ink:#96590F;
+  --adu-bg:#DDEBFB; --adu-bd:#B6D3F3; --adu-ink:#1F5D9E;
+  --amb-bg:#E3F3DF; --amb-bd:#BEE0B6; --amb-ink:#2F6B3A;
+  --pre-bg:#EFEDF3; --pre-bd:#DAD5E4; --pre-ink:#5B5566;
+
+  --sombra:0 1px 2px rgba(46,42,56,.05), 0 8px 24px -12px rgba(46,42,56,.18);
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{background:var(--paper);color:var(--ink);font-family:'Public Sans',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;font-size:16px;line-height:1.55;-webkit-font-smoothing:antialiased}
+h1,h2,h3{font-family:'Bricolage Grotesque','Public Sans',sans-serif;margin:0;line-height:1.12;letter-spacing:-.015em}
+a{color:var(--accent)}
+.mono{font-family:'IBM Plex Mono',ui-monospace,monospace;font-variant-numeric:tabular-nums}
+.envoltura{max-width:1180px;margin:0 auto;padding:0 20px}
+.oculto{display:none !important}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+
+/* ── Encabezado ───────────────────────────────────────── */
+.tope{background:var(--surf);border-bottom:1px solid var(--line)}
+.tope-int{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:16px 20px;max-width:1180px;margin:0 auto}
+.marca{display:flex;align-items:center;gap:12px;min-width:0}
+.sello{width:38px;height:38px;border-radius:11px;background:var(--ink);color:#fff;display:grid;place-items:center;font-family:'Bricolage Grotesque',sans-serif;font-weight:800;font-size:17px;flex:none;overflow:hidden}
+.sello img{width:100%;height:100%;object-fit:cover}
+.marca b{font-family:'Bricolage Grotesque',sans-serif;font-weight:600;font-size:17px;display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.marca span{font-size:12.5px;color:var(--mute);display:block}
+.tope-acc{display:flex;gap:8px;flex:none;align-items:center}
+
+/* ── Botones ──────────────────────────────────────────── */
+.btn{font:inherit;font-weight:600;font-size:14.5px;border-radius:9px;padding:9px 15px;border:1px solid var(--line);background:var(--surf);color:var(--ink);cursor:pointer;transition:.15s;white-space:nowrap}
+.btn:hover:not(:disabled){border-color:#CFC5E4;background:#FCFBFE}
+.btn:focus-visible{outline:2.5px solid var(--accent);outline-offset:2px}
+.btn.principal{background:var(--accent);border-color:var(--accent);color:#fff}
+.btn.principal:hover:not(:disabled){background:#4C3E76}
+.btn.suave{background:var(--accent-soft);border-color:transparent;color:var(--accent-ink)}
+.btn.ok{background:var(--ok);border-color:var(--ok);color:#fff}
+.btn.peligro{color:var(--alerta);border-color:#EBD3D1}
+.btn.peligro:hover:not(:disabled){background:var(--alerta-soft)}
+.btn.mini{padding:6px 11px;font-size:13px;border-radius:8px}
+.btn:disabled{opacity:.5;cursor:not-allowed}
+.btn-icono{width:38px;height:38px;padding:0;display:grid;place-items:center;font-size:17px}
+
+/* ── Portada paciente ─────────────────────────────────── */
+.intro{padding:34px 0 20px;display:flex;gap:28px;align-items:flex-start}
+.intro-txt{flex:1;min-width:0}
+.intro h1{font-size:clamp(28px,4.4vw,44px);font-weight:800;max-width:16ch}
+.intro p{color:var(--ink-2);max-width:52ch;margin:12px 0 0;font-size:16.5px}
+.retrato{flex:none;width:132px;text-align:center}
+.retrato img{width:132px;height:132px;border-radius:18px;object-fit:cover;border:1px solid var(--line);box-shadow:var(--sombra)}
+.retrato small{display:block;margin-top:9px;font-size:12.5px;color:var(--mute);line-height:1.4}
+
+/* ── Barra semana ─────────────────────────────────────── */
+.barra{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin:22px 0 14px}
+.nav-sem{display:flex;align-items:center;gap:6px;background:var(--surf);border:1px solid var(--line);border-radius:11px;padding:4px}
+.nav-sem .rango{font-family:'Bricolage Grotesque',sans-serif;font-weight:600;font-size:14.5px;padding:0 10px;min-width:172px;text-align:center}
+.filtros{display:flex;gap:6px;flex-wrap:wrap;margin-left:auto}
+.chip{font:inherit;font-size:13.5px;font-weight:500;border:1px solid var(--line);background:var(--surf);color:var(--ink-2);border-radius:99px;padding:7px 14px;cursor:pointer;transition:.15s}
+.chip[aria-pressed="true"]{background:var(--ink);border-color:var(--ink);color:#fff}
+.chip:focus-visible{outline:2.5px solid var(--accent);outline-offset:2px}
+
+/* ── Tablero semanal ──────────────────────────────────── */
+.tablero{background:var(--surf);border:1px solid var(--line);border-radius:16px;box-shadow:var(--sombra);overflow:hidden}
+.grilla{display:grid;grid-template-columns:62px repeat(7,1fr)}
+.gc{border-right:1px solid var(--line);border-bottom:1px solid var(--line);min-height:46px;position:relative}
+.gc:nth-child(8n){border-right:none}
+.cab{padding:11px 6px;text-align:center;background:#FBFAFD}
+.cab .d{font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--mute);font-weight:600}
+.cab .n{font-family:'Bricolage Grotesque',sans-serif;font-size:19px;font-weight:600;margin-top:1px}
+.cab.hoy{background:var(--accent-soft)}
+.cab.hoy .n{color:var(--accent)}
+.hh{display:grid;place-items:center;font-size:12.5px;color:var(--mute);background:#FBFAFD}
+.cupo{position:absolute;inset:4px;border-radius:8px;border:1px solid;cursor:pointer;font:inherit;font-size:12.5px;font-weight:600;display:grid;place-items:center;text-align:center;line-height:1.2;padding:2px;transition:.13s}
+.cupo:hover{transform:translateY(-1px);filter:brightness(.97)}
+.cupo:focus-visible{outline:2.5px solid var(--accent);outline-offset:1px}
+.cupo.nna{background:var(--nna-bg);border-color:var(--nna-bd);color:var(--nna-ink)}
+.cupo.onl{background:var(--onl-bg);border-color:var(--onl-bd);color:var(--onl-ink)}
+.cupo.adu{background:var(--adu-bg);border-color:var(--adu-bd);color:var(--adu-ink)}
+.cupo.amb{background:var(--amb-bg);border-color:var(--amb-bd);color:var(--amb-ink)}
+.cupo.pre{background:var(--pre-bg);border-color:var(--pre-bd);color:var(--pre-ink)}
+.dias{display:flex;flex-direction:column}
+.dia{border-bottom:1px solid var(--line);padding:16px}
+.dia:last-child{border-bottom:none}
+.dia h3{font-size:16px;font-weight:600;text-transform:capitalize}
+.horas{display:flex;flex-wrap:wrap;gap:8px;margin-top:11px}
+.horas .cupo{position:static;inset:auto;padding:10px 14px;font-size:14px;min-width:86px}
+
+.leyenda{display:flex;gap:16px;flex-wrap:wrap;margin:16px 2px 0;font-size:13px;color:var(--ink-2)}
+.leyenda i{width:13px;height:13px;border-radius:4px;display:inline-block;vertical-align:-2px;margin-right:7px;border:1px solid}
+.li-nna i{background:var(--nna-bg);border-color:var(--nna-bd)}
+.li-onl i{background:var(--onl-bg);border-color:var(--onl-bd)}
+.li-adu i{background:var(--adu-bg);border-color:var(--adu-bd)}
+.li-amb i{background:var(--amb-bg);border-color:var(--amb-bd)}
+.li-pre i{background:var(--pre-bg);border-color:var(--pre-bd)}
+
+/* ── Avisos ───────────────────────────────────────────── */
+.aviso{border-radius:12px;padding:14px 16px;font-size:14.5px;margin:16px 0;border:1px solid}
+.aviso.info{background:var(--accent-soft);border-color:#DDD2F0;color:var(--accent-ink)}
+.aviso.mal{background:var(--alerta-soft);border-color:#EBD3D1;color:var(--alerta)}
+.aviso.bien{background:var(--ok-soft);border-color:#C3E2D6;color:var(--ok)}
+.vacio-tablero{padding:52px 24px;text-align:center;color:var(--mute)}
+.vacio-tablero b{display:block;color:var(--ink);font-family:'Bricolage Grotesque',sans-serif;font-size:18px;margin-bottom:6px}
+.cargando{padding:52px;text-align:center;color:var(--mute);font-size:14.5px}
+
+/* ── Modal ────────────────────────────────────────────── */
+.telon{position:fixed;inset:0;background:rgba(46,42,56,.55);backdrop-filter:blur(3px);z-index:80;display:grid;place-items:center;padding:16px;overflow:auto}
+.modal{background:var(--surf);border-radius:18px;width:100%;max-width:490px;box-shadow:0 24px 64px -16px rgba(46,42,56,.4);animation:sube .22s ease}
+@keyframes sube{from{opacity:0;transform:translateY(12px)}}
+@media (prefers-reduced-motion:reduce){.modal{animation:none}.cupo:hover{transform:none}}
+.modal-tope{padding:20px 22px 0;display:flex;justify-content:space-between;align-items:flex-start;gap:12px}
+.modal-tope h2{font-size:21px;font-weight:700}
+.modal-tope .cuando{color:var(--ink-2);font-size:14.5px;margin-top:5px}
+.modal-cuerpo{padding:18px 22px 22px}
+.cerrar{border:none;background:transparent;font-size:24px;line-height:1;color:var(--mute);cursor:pointer;padding:2px 6px;border-radius:8px}
+.cerrar:hover{background:var(--paper);color:var(--ink)}
+
+/* ── Formularios ──────────────────────────────────────── */
+.campo{margin-bottom:14px}
+.campo label{display:block;font-size:13.5px;font-weight:600;margin-bottom:5px}
+.campo .pista{font-weight:400;color:var(--mute);font-size:12.5px}
+input,select,textarea{width:100%;font:inherit;font-size:15px;padding:10px 12px;border:1px solid var(--line);border-radius:9px;background:var(--surf);color:var(--ink)}
+input:focus,select:focus,textarea:focus{outline:none}
+input:focus-visible,select:focus-visible,textarea:focus-visible{outline:2.5px solid var(--accent);outline-offset:1px;border-color:var(--accent)}
+textarea{resize:vertical;min-height:74px}
+.trampa{position:absolute;left:-9999px;width:1px;height:1px;opacity:0}
+.opciones{display:flex;gap:8px}
+.opciones label{flex:1;border:1px solid var(--line);border-radius:10px;padding:11px;text-align:center;cursor:pointer;font-size:14px;font-weight:600;margin:0;transition:.15s}
+.opciones input{position:absolute;opacity:0;width:1px;height:1px}
+.opciones label:has(input:checked){border-color:var(--accent);background:var(--accent-soft);color:var(--accent-ink)}
+.opciones label:has(input:focus-visible){outline:2.5px solid var(--accent);outline-offset:2px}
+
+/* ── Pie ──────────────────────────────────────────────── */
+.pie{margin:56px 0 0;border-top:1px solid var(--line);background:var(--surf)}
+.pie-int{max-width:1180px;margin:0 auto;padding:26px 20px;display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap;font-size:13.5px;color:var(--mute)}
+.pie a{color:var(--ink-2);text-decoration:none;border-bottom:1px solid var(--line)}
+
+/* ══════════ PANEL ADMIN ══════════ */
+.marco{display:grid;grid-template-columns:216px 1fr;min-height:calc(100vh - 71px)}
+.lateral{background:var(--surf);border-right:1px solid var(--line);padding:18px 12px;display:flex;flex-direction:column;gap:3px}
+.nav-it{font:inherit;font-size:14.5px;font-weight:600;text-align:left;border:none;background:transparent;color:var(--ink-2);padding:10px 13px;border-radius:9px;cursor:pointer;display:flex;align-items:center;gap:10px;transition:.14s}
+.nav-it:hover{background:var(--paper)}
+.nav-it[aria-current="true"]{background:var(--accent-soft);color:var(--accent-ink)}
+.nav-it:focus-visible{outline:2.5px solid var(--accent);outline-offset:-2px}
+.nav-it .pt{margin-left:auto;background:var(--aviso-soft);color:var(--aviso);font-size:11.5px;font-weight:700;border-radius:99px;padding:1px 8px}
+.lateral hr{border:none;border-top:1px solid var(--line);margin:10px 4px}
+.panel{padding:24px 28px 90px;min-width:0}
+.panel-tope{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;flex-wrap:wrap;margin-bottom:18px}
+.panel-tope h1{font-size:27px;font-weight:700}
+.panel-tope .sub{color:var(--mute);font-size:14px;margin-top:3px}
+
+.tarjeta{background:var(--surf);border:1px solid var(--line);border-radius:14px;padding:18px;box-shadow:var(--sombra);margin-bottom:16px}
+.tarjeta h3{font-size:16.5px;font-weight:600}
+.tarjeta .sub{color:var(--mute);font-size:13.5px;margin:3px 0 14px}
+.rejilla{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px}
+.dato{background:var(--paper);border-radius:11px;padding:14px}
+.dato .k{font-size:11.5px;color:var(--mute);letter-spacing:.07em;text-transform:uppercase;font-weight:600}
+.dato .v{font-family:'Bricolage Grotesque',sans-serif;font-size:27px;font-weight:700;line-height:1.2}
+.dato.urge{background:var(--aviso-soft)}
+.dato.urge .v{color:var(--aviso)}
+
+/* lista de sesiones */
+.lista{border-top:1px solid var(--line-2)}
+.ses{display:flex;gap:13px;align-items:center;padding:12px 4px;border-bottom:1px solid var(--line-2);flex-wrap:wrap}
+.ses:hover{background:#FDFCFE}
+.ses .marca-sel{flex:none}
+.ses input[type=checkbox]{width:17px;height:17px;accent-color:var(--accent);cursor:pointer}
+.ses .cuando{flex:none;width:132px}
+.ses .cuando .f{font-family:'Bricolage Grotesque',sans-serif;font-weight:600;font-size:14.5px;text-transform:capitalize}
+.ses .cuando .h{font-size:12.5px;color:var(--mute)}
+.ses .quien{flex:1 1 220px;min-width:0}
+.ses .quien b{font-weight:600;font-size:15px}
+.ses .quien .meta{font-size:13px;color:var(--ink-2);word-break:break-word}
+.ses .quien .nota{font-size:13px;color:var(--mute);font-style:italic;margin-top:2px}
+.ses .acc{display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-left:auto}
+.libre{color:var(--mute);font-size:14px}
+
+.etq{font-size:11.5px;font-weight:700;padding:2px 9px;border-radius:99px;border:1px solid;letter-spacing:.02em;display:inline-block}
+.etq.reservado{background:var(--aviso-soft);border-color:var(--onl-bd);color:var(--aviso)}
+.etq.confirmado{background:var(--ok-soft);border-color:#C3E2D6;color:var(--ok)}
+.etq.bloqueado{background:#F1EFF4;border-color:var(--line);color:var(--mute)}
+.etq.disponible{background:var(--amb-bg);border-color:var(--amb-bd);color:var(--amb-ink)}
+.etq.online{background:var(--onl-bg);border-color:var(--onl-bd);color:var(--onl-ink)}
+.etq.presencial{background:var(--adu-bg);border-color:var(--adu-bd);color:var(--adu-ink)}
+
+/* barra de selección */
+.barra-sel{position:fixed;left:50%;transform:translateX(-50%);bottom:20px;z-index:60;background:var(--ink);color:#fff;border-radius:13px;padding:10px 12px 10px 18px;display:flex;align-items:center;gap:10px;box-shadow:0 16px 40px -12px rgba(46,42,56,.55);flex-wrap:wrap;max-width:calc(100vw - 32px)}
+.barra-sel b{font-size:14.5px;margin-right:4px}
+.barra-sel .btn{background:rgba(255,255,255,.12);border-color:transparent;color:#fff}
+.barra-sel .btn:hover:not(:disabled){background:rgba(255,255,255,.22)}
+.barra-sel .btn.ok{background:var(--ok)}
+.barra-sel .btn.peligro{background:#8E3630;color:#fff;border-color:transparent}
+
+/* tostadas */
+.tostadas{position:fixed;right:18px;bottom:18px;z-index:90;display:flex;flex-direction:column;gap:8px;max-width:min(380px,calc(100vw - 36px))}
+.tostada{background:var(--ink);color:#fff;border-radius:11px;padding:12px 15px;font-size:14px;box-shadow:0 14px 34px -12px rgba(46,42,56,.5);animation:entra .2s ease}
+.tostada.mal{background:#8E3630}
+.tostada.bien{background:var(--ok)}
+@keyframes entra{from{opacity:0;transform:translateY(8px)}}
+
+.segmento{display:inline-flex;background:var(--paper);border:1px solid var(--line);border-radius:10px;padding:3px}
+.segmento button{font:inherit;font-size:13.5px;font-weight:600;border:none;background:transparent;color:var(--ink-2);padding:6px 14px;border-radius:7px;cursor:pointer}
+.segmento button[aria-pressed="true"]{background:var(--surf);color:var(--ink);box-shadow:0 1px 2px rgba(46,42,56,.1)}
+.buscador{position:relative;flex:1;min-width:200px;max-width:360px}
+.buscador input{padding-left:36px}
+.buscador::before{content:"⌕";position:absolute;left:13px;top:50%;transform:translateY(-50%);color:var(--mute);font-size:17px}
+
+.bloque-plt{display:grid;grid-template-columns:1.2fr .9fr .9fr 1.4fr auto;gap:8px;align-items:center;margin-bottom:8px}
+.bloque-plt select,.bloque-plt input{padding:8px 10px;font-size:14px}
+.bitacora{font-size:13px;border-collapse:collapse;width:100%}
+.bitacora td{padding:7px 10px 7px 0;border-bottom:1px solid var(--line-2);vertical-align:top}
+.bitacora td:first-child{color:var(--mute);white-space:nowrap;font-family:'IBM Plex Mono',monospace;font-size:12px}
+.entrar{max-width:400px;margin:56px auto}
+
+@media (max-width:900px){
+  .marco{grid-template-columns:1fr}
+  .lateral{flex-direction:row;overflow-x:auto;border-right:none;border-bottom:1px solid var(--line);padding:10px}
+  .lateral hr{display:none}
+  .nav-it{white-space:nowrap}
+  .panel{padding:18px 16px 100px}
+  .intro{flex-direction:column-reverse;align-items:flex-start;gap:18px}
+  .retrato{width:96px}.retrato img{width:96px;height:96px}
+  .filtros{margin-left:0;width:100%}
+  .bloque-plt{grid-template-columns:1fr 1fr;gap:6px}
+  .ses .cuando{width:auto;flex:1 1 100%}
+  .ses .acc{margin-left:0;width:100%}
+}
+@media (max-width:620px){
+  .envoltura{padding:0 16px}
+  .tope-int{padding:13px 16px}
+  .nav-sem{width:100%}.nav-sem .rango{flex:1}
+}
+</style>
+</head>
+<body>
+
+<header class="tope">
+  <div class="tope-int">
+    <div class="marca">
+      <div class="sello" id="sello">A</div>
+      <div><b id="marca-nombre">Consulta psicológica</b><span id="marca-sub">Reserva de horas</span></div>
+    </div>
+    <div class="tope-acc">
+      <button class="btn" id="btn-mi-hora">Ya tengo hora</button>
+      <button class="btn suave oculto" id="btn-salir">Salir</button>
+    </div>
+  </div>
+</header>
+
+<!-- ═══════════ VISTA PACIENTE ═══════════ -->
+<main id="vista-publica">
+  <div class="envoltura">
+    <section class="intro">
+      <div class="intro-txt">
+        <h1 id="titulo">Reserva tu hora</h1>
+        <p id="bajada"></p>
+      </div>
+      <div class="retrato oculto" id="retrato"></div>
+    </section>
+
+    <div id="aviso-config"></div>
+
+    <div class="barra">
+      <div class="nav-sem">
+        <button class="btn btn-icono" id="sem-atras" aria-label="Semana anterior">‹</button>
+        <div class="rango" id="sem-rango">—</div>
+        <button class="btn btn-icono" id="sem-adelante" aria-label="Semana siguiente">›</button>
+      </div>
+      <button class="btn mini" id="sem-hoy">Hoy</button>
+      <div class="filtros"><span style="font-size:13.5px;color:var(--mute)">Eliges online o presencial al reservar</span></div>
+    </div>
+
+    <div class="tablero" id="tablero"><div class="cargando">Cargando la agenda…</div></div>
+
+  </div>
+</main>
+
+<!-- ═══════════ PANEL ADMIN ═══════════ -->
+<main id="vista-admin" class="oculto">
+  <div id="admin-entrar" class="entrar">
+    <div class="tarjeta">
+      <h3>Entrar a la agenda</h3>
+      <p class="sub">Solo el profesional a cargo puede administrar las horas.</p>
+      <div id="boton-google"></div>
+      <div id="zona-pin">
+        <div class="campo" style="margin-top:14px">
+          <label for="pin">Clave de acceso</label>
+          <input type="password" id="pin" inputmode="numeric" autocomplete="current-password" placeholder="••••">
+        </div>
+        <button class="btn principal" id="btn-pin" style="width:100%">Entrar</button>
+      </div>
+      <div id="err-entrar"></div>
+    </div>
+    <p style="text-align:center"><a href="#">Volver al sitio de reservas</a></p>
+  </div>
+
+  <div id="admin-panel" class="oculto">
+    <div class="marco">
+      <aside class="lateral">
+        <button class="nav-it" data-sec="agenda" aria-current="true">Agenda</button>
+        <button class="nav-it" data-sec="reservas">Reservas <span class="pt oculto" id="pt-conf"></span></button>
+        <button class="nav-it" data-sec="pacientes">Pacientes</button>
+        <hr>
+        <button class="nav-it" data-sec="horario">Horario</button>
+        <button class="nav-it" data-sec="mantencion">Mantención</button>
+      </aside>
+      <div class="panel" id="panel"></div>
+    </div>
+  </div>
+</main>
+
+<footer class="pie" id="pie">
+  <div class="pie-int">
+    <span id="pie-nombre">Consulta psicológica</span>
+    <span id="pie-contacto"></span>
+    <span><a href="#admin">Administrar la agenda</a></span>
+  </div>
+</footer>
+
+<div id="modales"></div>
+<div class="tostadas" id="tostadas"></div>
+<div id="barra-sel"></div>
+
+<script src="https://accounts.google.com/gsi/client" async defer></script>
+<script>
+/* ══════════════════════════════════════════════════════════
+   ESTADO
+   ══════════════════════════════════════════════════════════ */
+const S = {
+  cupos:[], agenda:[], plantilla:[], ajustes:{}, resumen:{}, bitacora:[],
+  filtro:{ publico:'', modalidad:'' },
+  lunes:lunesDe(new Date()),
+  dia:isoHoy(),
+  sec:'agenda', vista:'dia', ambito:'proximas', busca:'',
+  sel:new Set(),
+  ficha:null, resultados:null,
+  token:localStorage.getItem('agenda_token') || '',
+  correo:localStorage.getItem('agenda_correo') || '',
+  cargando:false
+};
+
+const DIAS_CORTOS = ['LUN','MAR','MIÉ','JUE','VIE','SÁB','DOM'];
+const DIAS_LARGOS = ['domingo','lunes','martes','miércoles','jueves','viernes','sábado'];
+const MESES  = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
+const MESES_C = ['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
+
+const $  = (s,c) => (c||document).querySelector(s);
+const $$ = (s,c) => Array.from((c||document).querySelectorAll(s));
+
+/* ── Fechas ───────────────────────────────────────────── */
+function p2(n){ return ('0'+n).slice(-2) }
+function iso(d){ return d.getFullYear()+'-'+p2(d.getMonth()+1)+'-'+p2(d.getDate()) }
+function isoHoy(){ return iso(new Date()) }
+function deIso(s){ const [a,m,d]=s.split('-').map(Number); return new Date(a,m-1,d) }
+function lunesDe(d){ const x=new Date(d); x.setDate(x.getDate()-((x.getDay()+6)%7)); x.setHours(0,0,0,0); return x }
+function masDias(d,n){ const x=new Date(d); x.setDate(x.getDate()+n); return x }
+function isoMas(s,n){ return iso(masDias(deIso(s),n)) }
+function fechaLarga(s){ const d=deIso(s); return DIAS_LARGOS[d.getDay()]+' '+d.getDate()+' de '+MESES[d.getMonth()] }
+function fechaCorta(s){ const d=deIso(s); return DIAS_LARGOS[d.getDay()].slice(0,3)+' '+d.getDate()+' '+MESES_C[d.getMonth()] }
+function esc(s){ return String(s||'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])) }
+
+/* ══════════════════════════════════════════════════════════
+   SERVIDOR
+   ══════════════════════════════════════════════════════════ */
+async function api(accion, datos){
+  if (!CONFIG.API) return { ok:false, error:'Falta conectar la agenda con el servidor.' };
+  const cuerpo = Object.assign({ accion }, datos||{});
+  if (S.token) cuerpo.token = S.token;
+  try{
+    const r = await fetch(CONFIG.API, {
+      method:'POST', redirect:'follow',
+      headers:{ 'Content-Type':'text/plain;charset=utf-8' },
+      body:JSON.stringify(cuerpo)
+    });
+    return await r.json();
+  }catch(e){
+    return { ok:false, error:'No hay conexión con la agenda. Revisa tu internet e intenta de nuevo.' };
+  }
+}
+
+function tostada(texto, tipo){
+  const d = document.createElement('div');
+  d.className = 'tostada ' + (tipo||'');
+  d.textContent = texto;
+  $('#tostadas').appendChild(d);
+  setTimeout(()=>{ d.style.opacity='0'; d.style.transition='opacity .3s'; setTimeout(()=>d.remove(),320); }, 3600);
+}
+
+/* ══════════════════════════════════════════════════════════
+   VISTA PACIENTE
+   ══════════════════════════════════════════════════════════ */
+function clase(c){
+  if (c.modalidad === 'Online')     return 'onl';
+  if (c.modalidad === 'Presencial') return 'adu';
+  return 'amb';
+}
+function rotulo(c){
+  if (c.modalidad === 'Online')     return 'Solo online';
+  if (c.modalidad === 'Presencial') return 'Solo presencial';
+  return 'Online o presencial, tú eliges';
+}
+function pasaFiltro(){ return true }
+
+/* Enlaces de contacto */
+function urlMapa(){
+  const d = S.ajustes.direccion || '';
+  return d ? 'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(d) : '';
+}
+function urlWsp(){
+  const n = String(S.ajustes.telefono || '').replace(/\D/g,'');
+  return n ? 'https://api.whatsapp.com/send/?phone=' + n + '&text='
+           + encodeURIComponent(CONFIG.WSP_MENSAJE) + '&type=phone_number&app_absent=0' : '';
+}
+function botonesContacto(conMapa){
+  const m = urlMapa(), w = urlWsp();
+  if ((!conMapa || !m) && !w) return '';
+  return '<div style="display:flex;gap:8px;flex-wrap:wrap;margin:16px 0 0">'
+    + (conMapa && m ? '<a class="btn principal" href="'+m+'" target="_blank" rel="noopener" style="text-decoration:none">Cómo llegar</a>' : '')
+    + (w ? '<a class="btn" href="'+w+'" target="_blank" rel="noopener" style="text-decoration:none;background:#25D366;border-color:#25D366;color:#fff">Escribir por WhatsApp</a>' : '')
+    + '</div>';
+}
+function rangoSemana(l){
+  const a = l || S.lunes, b = masDias(a,6);
+  return a.getDate()+' '+MESES_C[a.getMonth()]+' — '+b.getDate()+' '+MESES_C[b.getMonth()];
+}
+
+function pintarTablero(){
+  const cont = $('#tablero');
+  const dias = []; for (let i=0;i<7;i++) dias.push(iso(masDias(S.lunes,i)));
+  $('#sem-rango').textContent = rangoSemana();
+  const dentro = S.cupos.filter(c => dias.includes(c.fecha) && pasaFiltro(c));
+
+  if (!dentro.length){
+    cont.innerHTML = '<div class="vacio-tablero"><b>No hay horas libres esta semana</b>'
+      + (S.cupos.length ? 'Prueba con la semana siguiente o saca los filtros.' : 'Todavía no se han cargado horas a la agenda.')
+      + '</div>';
+    return;
+  }
+  if (window.innerWidth < 860) return pintarLista(cont, dias, dentro);
+
+  const horas = [...new Set(dentro.map(c=>c.inicio))].sort();
+  const hoy = isoHoy();
+  let h = '<div class="grilla"><div class="gc cab"></div>';
+  dias.forEach((f,i)=>{
+    h += '<div class="gc cab'+(f===hoy?' hoy':'')+'"><div class="d">'+DIAS_CORTOS[i]+'</div><div class="n">'+deIso(f).getDate()+'</div></div>';
+  });
+  horas.forEach(hh=>{
+    h += '<div class="gc hh mono">'+hh+'</div>';
+    dias.forEach(f=>{
+      const c = dentro.find(x=>x.fecha===f && x.inicio===hh);
+      h += '<div class="gc">'+(c?'<button class="cupo '+clase(c)+'" data-id="'+c.id+'" title="'+rotulo(c)+'">'+hh+'</button>':'')+'</div>';
+    });
+  });
+  cont.innerHTML = h+'</div>';
+  $$('.cupo',cont).forEach(b=>b.addEventListener('click',()=>abrirReserva(b.dataset.id)));
+}
+
+function pintarLista(cont, dias, dentro){
+  let h = '<div class="dias">';
+  dias.forEach(f=>{
+    const dd = dentro.filter(c=>c.fecha===f).sort((a,b)=>a.inicio<b.inicio?-1:1);
+    if (!dd.length) return;
+    h += '<div class="dia"><h3>'+fechaLarga(f)+'</h3><div class="horas">'
+       + dd.map(c=>'<button class="cupo '+clase(c)+'" data-id="'+c.id+'"><span class="mono">'+c.inicio+'</span></button>').join('')
+       + '</div></div>';
+  });
+  cont.innerHTML = h+'</div>';
+  $$('.cupo',cont).forEach(b=>b.addEventListener('click',()=>abrirReserva(b.dataset.id)));
+}
+
+async function cargarDisponibilidad(){
+  const r = await api('disponibilidad');
+  if (!r.ok){ $('#tablero').innerHTML = '<div class="vacio-tablero"><b>No pudimos cargar la agenda</b>'+esc(r.error)+'</div>'; return; }
+  S.cupos = r.datos || [];
+  S.ajustes = r.ajustes || {};
+  if (S.ajustes.profesional && !CONFIG.NOMBRE_FIJO){
+    $('#marca-nombre').textContent = S.ajustes.profesional;
+    $('#pie-nombre').textContent = S.ajustes.profesional;
+  }
+  const w = urlWsp();
+  if (w) $('#pie-contacto').innerHTML = '<a href="'+w+'" target="_blank" rel="noopener">Escribir por WhatsApp</a>';
+  pintarTablero();
+}
+
+/* ── Modales del paciente ─────────────────────────────── */
+function modal(html, ancho){
+  $('#modales').innerHTML = '<div class="telon" id="telon"><div class="modal" role="dialog" aria-modal="true"'
+    + (ancho?' style="max-width:'+ancho+'px"':'') + '>'+html+'</div></div>';
+  const t = $('#telon');
+  t.addEventListener('mousedown', e=>{ if(e.target===t) cerrarModal() });
+  document.addEventListener('keydown', escapar);
+  const f = $('input,select,textarea,button', t); if (f) f.focus();
+}
+function cerrarModal(){ $('#modales').innerHTML=''; document.removeEventListener('keydown', escapar) }
+function escapar(e){ if (e.key==='Escape') cerrarModal() }
+
+function abrirReserva(id){
+  const c = S.cupos.find(x=>x.id===id); if(!c) return;
+  const elige = c.modalidad === 'Ambas';
+  modal('<div class="modal-tope"><div><h2>Reservar hora</h2>'
+    + '<div class="cuando" style="text-transform:capitalize">'+fechaLarga(c.fecha)+' · '+c.inicio+' h</div>'
+    + '<div class="cuando" style="margin-top:2px">'+rotulo(c)+'</div></div>'
+    + '<button class="cerrar" id="x" aria-label="Cerrar">×</button></div>'
+    + '<div class="modal-cuerpo">'
+    + (elige?'<div class="campo"><label>¿Cómo prefieres la sesión?</label><div class="opciones">'
+        +'<label><input type="radio" name="mod" value="Online" checked><span>Online</span></label>'
+        +'<label><input type="radio" name="mod" value="Presencial"><span>Presencial</span></label></div></div>':'')
+    + '<div class="campo"><label for="f-nombre">Nombre y apellido</label><input id="f-nombre" autocomplete="name"></div>'
+    + '<div class="campo"><label for="f-email">Correo <span class="pista">— ahí te llega la confirmación</span></label><input id="f-email" type="email" autocomplete="email" inputmode="email"></div>'
+    + '<div class="campo"><label for="f-fono">Teléfono</label><input id="f-fono" type="tel" autocomplete="tel" inputmode="tel" placeholder="+56 9 …"></div>'
+    + '<div class="campo"><label for="f-notas">¿Algo que quieras contar antes? <span class="pista">— opcional</span></label><textarea id="f-notas" maxlength="500"></textarea></div>'
+    + '<input class="trampa" id="f-web" tabindex="-1" autocomplete="off" aria-hidden="true">'
+    + '<div id="err-res"></div>'
+    + '<button class="btn principal" id="f-enviar" style="width:100%;padding:12px">Reservar esta hora</button>'
+    + '<p style="font-size:12.5px;color:var(--mute);margin:12px 0 0;text-align:center">Guardamos solo tus datos de contacto para agendar la sesión.</p></div>');
+
+  $('#x').addEventListener('click', cerrarModal);
+  $('#f-enviar').addEventListener('click', async ()=>{
+    const b = $('#f-enviar'), m = $('input[name=mod]:checked');
+    b.disabled = true; b.textContent = 'Reservando…'; $('#err-res').innerHTML = '';
+    const r = await api('reservar', {
+      id:c.id, nombre:$('#f-nombre').value, email:$('#f-email').value,
+      telefono:$('#f-fono').value, notas:$('#f-notas').value,
+      modalidad: m ? m.value : c.modalidad, web:$('#f-web').value
+    });
+    if (!r.ok){
+      $('#err-res').innerHTML = '<div class="aviso mal">'+esc(r.error)+'</div>';
+      b.disabled = false; b.textContent = 'Reservar esta hora'; return;
+    }
+    S.cupos = S.cupos.filter(x=>x.id!==c.id);
+    pintarTablero(); listo(r.reserva);
+  });
+}
+
+function listo(r){
+  modal('<div class="modal-tope"><div><h2>Tu hora quedó tomada</h2>'
+    + '<div class="cuando" style="text-transform:capitalize">'+fechaLarga(r.fecha)+' · '+r.inicio+' h</div></div>'
+    + '<button class="cerrar" id="x" aria-label="Cerrar">×</button></div><div class="modal-cuerpo">'
+    + '<div class="aviso bien">Te mandamos un correo con los datos. Si no lo ves, revisa spam o promociones.</div>'
+    + '<table style="width:100%;font-size:14.5px">'
+    + '<tr><td style="color:var(--mute);padding:6px 0;width:120px">Modalidad</td><td>'+r.modalidad+'</td></tr>'
+    + (r.meet?'<tr><td style="color:var(--mute);padding:6px 0">Videollamada</td><td><a href="'+r.meet+'" target="_blank" rel="noopener">Enlace de Google Meet</a></td></tr>':'')
+    + (r.modalidad==='Presencial'&&S.ajustes.direccion?'<tr><td style="color:var(--mute);padding:6px 0">Dónde</td><td>'+esc(S.ajustes.direccion)+'</td></tr>':'')
+    + '<tr><td style="color:var(--mute);padding:6px 0">Código</td><td><b class="mono">'+r.id+'</b></td></tr></table>'
+    + '<p style="font-size:13px;color:var(--mute);margin:14px 0 0">Guarda ese código: con él y tu correo puedes revisar o anular la hora desde “Ya tengo hora”.</p>'
+    + botonesContacto(r.modalidad === 'Presencial')
+    + '<button class="btn principal" id="ok" style="width:100%;margin-top:18px">Listo</button></div>');
+  $('#x').addEventListener('click', cerrarModal);
+  $('#ok').addEventListener('click', cerrarModal);
+}
+
+function abrirMiHora(){
+  modal('<div class="modal-tope"><div><h2>Revisar mi hora</h2>'
+    + '<div class="cuando">Busca con el código que te llegó por correo</div></div>'
+    + '<button class="cerrar" id="x" aria-label="Cerrar">×</button></div><div class="modal-cuerpo">'
+    + '<div class="campo"><label for="m-id">Código de la hora</label><input id="m-id" placeholder="H26…" autocapitalize="characters"></div>'
+    + '<div class="campo"><label for="m-mail">Tu correo</label><input id="m-mail" type="email" inputmode="email"></div>'
+    + '<div id="m-res"></div><button class="btn principal" id="m-buscar" style="width:100%">Buscar</button></div>');
+  $('#x').addEventListener('click', cerrarModal);
+  $('#m-buscar').addEventListener('click', async ()=>{
+    const b = $('#m-buscar'); b.disabled=true; b.textContent='Buscando…';
+    const r = await api('miReserva', { id:$('#m-id').value.trim(), email:$('#m-mail').value.trim() });
+    b.disabled=false; b.textContent='Buscar';
+    if (!r.ok){ $('#m-res').innerHTML = '<div class="aviso mal">'+esc(r.error)+'</div>'; return; }
+    const x = r.reserva;
+    $('#m-res').innerHTML = '<div class="aviso info"><b style="text-transform:capitalize">'+fechaLarga(x.fecha)+' · '+x.inicio+' h</b><br>'
+      + x.modalidad+' · '+(x.estado==='confirmado'?'confirmada':'reservada')
+      + (x.meet?'<br><a href="'+x.meet+'" target="_blank" rel="noopener">Enlace de la videollamada</a>':'')
+      + '</div><button class="btn peligro" id="m-anular" style="width:100%;margin-bottom:12px">Anular esta hora</button>';
+    $('#m-anular').addEventListener('click', async ()=>{
+      if (!confirm('¿Seguro que quieres anular esta hora?')) return;
+      const q = await api('anularPaciente', { id:x.id, email:$('#m-mail').value.trim() });
+      $('#m-res').innerHTML = q.ok
+        ? '<div class="aviso bien">Hora anulada. Puedes tomar otra cuando quieras.</div>'
+        : '<div class="aviso mal">'+esc(q.error)+'</div>';
+      if (q.ok) cargarDisponibilidad();
+    });
+  });
+}
+
+/* ══════════════════════════════════════════════════════════
+   ADMIN — infraestructura
+   ══════════════════════════════════════════════════════════ */
+function esAdmin(){ return location.hash.replace('#','').split('?')[0] === 'admin' }
+
+function enrutar(){
+  const admin = esAdmin();
+  $('#vista-publica').classList.toggle('oculto', admin);
+  $('#vista-admin').classList.toggle('oculto', !admin);
+  $('#pie').classList.toggle('oculto', admin);
+  $('#btn-mi-hora').classList.toggle('oculto', admin);
+  $('#btn-salir').classList.toggle('oculto', !(admin && S.token));
+  $('#marca-sub').textContent = admin ? 'Panel de administración' : 'Reserva de horas';
+  if (admin){
+    if (S.token){ $('#admin-entrar').classList.add('oculto'); $('#admin-panel').classList.remove('oculto'); cargarAgenda(); }
+    else { $('#admin-entrar').classList.remove('oculto'); $('#admin-panel').classList.add('oculto'); prepararGoogle(); }
+  } else {
+    cargarDisponibilidad();
+  }
+}
+
+function prepararGoogle(){
+  if (!CONFIG.CLIENT_ID || !window.google || !google.accounts) return;
+  $('#zona-pin').classList.add('oculto');
+  google.accounts.id.initialize({ client_id:CONFIG.CLIENT_ID, callback:entrarConGoogle });
+  google.accounts.id.renderButton($('#boton-google'), { theme:'outline', size:'large', width:352, text:'signin_with', locale:'es' });
+}
+
+async function entrarConGoogle(resp){
+  $('#err-entrar').innerHTML = '<div class="aviso info">Validando tu cuenta…</div>';
+  aplicarIngreso(await api('ingresar', { credential:resp.credential }));
+}
+async function entrarConPin(){
+  const b = $('#btn-pin'); b.disabled=true; b.textContent='Entrando…';
+  const r = await api('ingresar', { pin:$('#pin').value });
+  b.disabled=false; b.textContent='Entrar';
+  aplicarIngreso(r);
+}
+function aplicarIngreso(r){
+  if (!r.ok){ $('#err-entrar').innerHTML = '<div class="aviso mal">'+esc(r.error)+'</div>'; return; }
+  S.token = r.token; S.correo = r.correo;
+  localStorage.setItem('agenda_token', r.token);
+  localStorage.setItem('agenda_correo', r.correo);
+  $('#err-entrar').innerHTML = '';
+  $('#btn-salir').classList.remove('oculto');
+  $('#admin-entrar').classList.add('oculto');
+  $('#admin-panel').classList.remove('oculto');
+  cargarAgenda();
+}
+function salir(){
+  S.token=''; S.correo='';
+  localStorage.removeItem('agenda_token'); localStorage.removeItem('agenda_correo');
+  location.hash = '';
+}
+
+async function cargarAgenda(){
+  if (!S.agenda.length) $('#panel').innerHTML = '<div class="cargando">Cargando la agenda…</div>';
+  const r = await api('agenda');
+  if (!r.ok){
+    if (/sesión/i.test(r.error)) return salir();
+    $('#panel').innerHTML = '<div class="aviso mal">'+esc(r.error)+'</div>';
+    return;
+  }
+  S.agenda = r.datos || [];
+  S.plantilla = r.plantilla || [];
+  S.ajustes = r.ajustes || {};
+  S.resumen = r.resumen || {};
+  pintarSeccion();
+}
+
+function hora(id){ return S.agenda.find(x=>x.id===id) }
+function ocupada(x){ return ['reservado','confirmado'].includes(x.estado) }
+
+/** Aplica el cambio en pantalla al tiro y manda la llamada por detrás. */
+async function ejecutar(ids, operacion, motivo){
+  const previo = JSON.parse(JSON.stringify(S.agenda));
+  ids.forEach(id=>{
+    const x = hora(id); if(!x) return;
+    if (operacion==='confirmar') x.estado='confirmado';
+    else if (operacion==='eliminar') S.agenda = S.agenda.filter(y=>y.id!==id);
+    else if (operacion==='bloquear'){ x.estado='bloqueado'; x.nombre=x.email=x.telefono=''; }
+    else { x.estado='disponible'; x.nombre=x.email=x.telefono=x.meet=''; }
+  });
+  S.sel.clear();
+  pintarSeccion();
+
+  const r = await api('lote', { ids, operacion, motivo:motivo||'' });
+  if (!r.ok){
+    S.agenda = previo; pintarSeccion();
+    tostada(r.error, 'mal');
+    if (/sesión/i.test(r.error)) salir();
+    return;
+  }
+  tostada(r.mensaje, 'bien');
+  cargarAgenda();
+}
+
+/* ══════════════════════════════════════════════════════════
+   ADMIN — secciones
+   ══════════════════════════════════════════════════════════ */
+function pintarSeccion(){
+  $$('.nav-it').forEach(b=>b.setAttribute('aria-current', String(b.dataset.sec===S.sec)));
+  const pc = S.resumen.porConfirmar || 0;
+  $('#pt-conf').textContent = pc;
+  $('#pt-conf').classList.toggle('oculto', !pc);
+
+  const p = $('#panel');
+  if (S.sec==='agenda')     p.innerHTML = vistaAgenda();
+  if (S.sec==='reservas')   p.innerHTML = vistaReservas();
+  if (S.sec==='pacientes')  p.innerHTML = vistaPacientes();
+  if (S.sec==='horario')    p.innerHTML = vistaHorario();
+  if (S.sec==='mantencion') p.innerHTML = vistaMantencion();
+  enlazar(p);
+  pintarBarraSel();
+}
+
+/* ── Agenda (día / semana) ────────────────────────────── */
+function vistaAgenda(){
+  let h = '<div class="panel-tope"><div><h1>Agenda</h1><div class="sub">'+esc(S.correo)+'</div></div>'
+    + '<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">'
+    + '<div class="segmento"><button data-acc="vista" data-v="dia" aria-pressed="'+(S.vista==='dia')+'">Día</button>'
+    + '<button data-acc="vista" data-v="semana" aria-pressed="'+(S.vista==='semana')+'">Semana</button></div>'
+    + '<button class="btn mini" data-acc="hoy">Hoy</button></div></div>';
+
+  h += S.vista==='dia' ? agendaDia() : agendaSemana();
+  return h;
+}
+
+function agendaDia(){
+  const dd = S.agenda.filter(x=>x.fecha===S.dia).sort((a,b)=>a.inicio<b.inicio?-1:1);
+  let h = '<div class="tarjeta"><div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:12px">'
+    + '<div><h3 style="text-transform:capitalize">'+fechaLarga(S.dia)+'</h3>'
+    + '<div class="sub" style="margin:2px 0 0">'+(dd.filter(ocupada).length)+' con paciente · '+dd.filter(x=>x.estado==='disponible').length+' libres</div></div>'
+    + '<div class="nav-sem"><button class="btn btn-icono" data-acc="dia-" aria-label="Día anterior">‹</button>'
+    + '<div class="rango mono" style="min-width:120px">'+S.dia+'</div>'
+    + '<button class="btn btn-icono" data-acc="dia+" aria-label="Día siguiente">›</button></div></div>';
+
+  if (!dd.length) h += '<p class="libre">Este día no tiene horas cargadas.</p>';
+  else {
+    h += '<div class="lista">' + dd.map(x=>filaSesion(x,true)).join('') + '</div>';
+    const conGente = dd.filter(ocupada);
+    if (conGente.length) h += '<div style="margin-top:14px"><button class="btn mini peligro" data-acc="bloquear-dia">Bloquear todo el día y avisar a los '+conGente.length+'</button></div>';
+    else h += '<div style="margin-top:14px"><button class="btn mini" data-acc="bloquear-dia">Bloquear todo el día</button></div>';
+  }
+  return h + '</div>' + tarjetaNuevaHora();
+}
+
+function agendaSemana(){
+  const dias=[]; for(let i=0;i<7;i++) dias.push(iso(masDias(S.lunes,i)));
+  const dentro = S.agenda.filter(x=>dias.includes(x.fecha));
+  let h = '<div class="tarjeta"><div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:14px">'
+    + '<h3>Semana del '+rangoSemana()+'</h3>'
+    + '<div class="nav-sem"><button class="btn btn-icono" data-acc="sem-" aria-label="Semana anterior">‹</button>'
+    + '<div class="rango">'+rangoSemana()+'</div>'
+    + '<button class="btn btn-icono" data-acc="sem+" aria-label="Semana siguiente">›</button></div></div>';
+
+  if (!dentro.length) return h + '<p class="libre">Esta semana no tiene horas cargadas.</p></div>';
+
+  const horas = [...new Set(dentro.map(x=>x.inicio))].sort();
+  const hoy = isoHoy();
+  h += '<div style="overflow-x:auto"><div class="grilla" style="min-width:760px">'
+     + '<div class="gc cab"></div>';
+  dias.forEach((f,i)=>{
+    h += '<div class="gc cab'+(f===hoy?' hoy':'')+'"><div class="d">'+DIAS_CORTOS[i]+'</div><div class="n">'+deIso(f).getDate()+'</div></div>';
+  });
+  horas.forEach(hh=>{
+    h += '<div class="gc hh mono">'+hh+'</div>';
+    dias.forEach(f=>{
+      const x = dentro.find(y=>y.fecha===f && y.inicio===hh);
+      if (!x){ h += '<div class="gc"></div>'; return; }
+      const cl = x.estado==='bloqueado' ? 'pre' : (ocupada(x) ? (x.modalidad==='Online'?'onl':'adu') : 'amb');
+      const txt = ocupada(x) ? esc(x.nombre.split(' ')[0]) : (x.estado==='bloqueado'?'—':hh);
+      h += '<div class="gc"><button class="cupo '+cl+'" data-acc="abrir-hora" data-id="'+x.id+'" title="'+hh+' · '+x.estado+'">'+txt+'</button></div>';
+    });
+  });
+  return h + '</div></div></div>';
+}
+
+function tarjetaNuevaHora(){
+  return '<div class="tarjeta"><h3>Agregar una hora suelta</h3>'
+    + '<p class="sub">Fuera del horario habitual, sin tocar la semana tipo</p>'
+    + '<div class="rejilla">'
+    + '<div class="campo" style="margin:0"><label for="n-fecha">Día</label><input type="date" id="n-fecha" value="'+S.dia+'"></div>'
+    + '<div class="campo" style="margin:0"><label for="n-hora">Hora</label><input type="time" id="n-hora" step="900" value="10:00"></div>'
+    + '<div class="campo" style="margin:0"><label for="n-mod">Modalidad</label><select id="n-mod"><option value="Ambas">El paciente elige</option><option value="Online">Solo online</option><option value="Presencial">Solo presencial</option></select></div>'
+    + '</div><button class="btn principal" data-acc="crear-hora" style="margin-top:12px">Agregar hora</button></div>';
+}
+
+/* ── Reservas ─────────────────────────────────────────── */
+function vistaReservas(){
+  const hoy = isoHoy();
+  let base = S.agenda.filter(ocupada);
+  if (S.ambito==='proximas')  base = base.filter(x=>x.fecha>=hoy);
+  if (S.ambito==='pasadas')   base = base.filter(x=>x.fecha<hoy);
+  if (S.ambito==='porconfirmar') base = base.filter(x=>x.estado==='reservado' && x.fecha>=hoy);
+  if (S.busca){
+    const q = S.busca.toLowerCase();
+    base = base.filter(x=>(x.nombre+' '+x.email+' '+x.telefono+' '+x.id).toLowerCase().includes(q));
+  }
+  base.sort((a,b)=> S.ambito==='pasadas' ? ((a.fecha+a.inicio)<(b.fecha+b.inicio)?1:-1)
+                                         : ((a.fecha+a.inicio)<(b.fecha+b.inicio)?-1:1));
+
+  let h = '<div class="panel-tope"><div><h1>Reservas</h1>'
+    + '<div class="sub">'+base.length+' resultado'+(base.length===1?'':'s')+'</div></div></div>';
+
+  h += '<div class="tarjeta"><div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:6px">'
+    + '<div class="segmento">'
+    + ['proximas','porconfirmar','pasadas','todas'].map(a=>'<button data-acc="ambito" data-v="'+a+'" aria-pressed="'+(S.ambito===a)+'">'
+        + ({proximas:'Próximas',porconfirmar:'Por confirmar',pasadas:'Pasadas',todas:'Todas'})[a]+'</button>').join('')
+    + '</div>'
+    + '<div class="buscador"><input id="q-res" placeholder="Nombre, correo, teléfono o código" value="'+esc(S.busca)+'"></div>'
+    + (base.length ? '<button class="btn mini" data-acc="sel-todo" style="margin-left:auto">Seleccionar los '+base.length+'</button>' : '')
+    + '</div>';
+
+  h += base.length
+    ? '<div class="lista">' + base.map(x=>filaSesion(x,false)).join('') + '</div>'
+    : '<p class="libre" style="padding:18px 0">No hay reservas que calcen con eso.</p>';
+
+  return h + '</div>';
+}
+
+function filaSesion(x, mostrarLibres){
+  const sel = S.sel.has(x.id);
+  if (!ocupada(x)){
+    if (!mostrarLibres) return '';
+    return '<div class="ses"><div class="marca-sel"><input type="checkbox" data-acc="sel" data-id="'+x.id+'"'+(sel?' checked':'')+' aria-label="Seleccionar '+x.inicio+'"></div>'
+      + '<div class="cuando"><div class="f mono">'+x.inicio+' – '+x.fin+'</div>'
+      + '<div class="h">'+(x.oferta==='Ambas'?'libre':x.oferta)+'</div></div>'
+      + '<div class="quien libre">'+(x.estado==='bloqueado'?'Bloqueada':'Libre')+'</div>'
+      + '<div class="acc"><span class="etq '+x.estado+'">'+x.estado+'</span>'
+      + '<button class="btn mini" data-acc="abrir-hora" data-id="'+x.id+'">Gestionar</button></div></div>';
+  }
+  return '<div class="ses"><div class="marca-sel"><input type="checkbox" data-acc="sel" data-id="'+x.id+'"'+(sel?' checked':'')+' aria-label="Seleccionar '+esc(x.nombre)+'"></div>'
+    + '<div class="cuando"><div class="f">'+(mostrarLibres?'<span class="mono">'+x.inicio+'</span>':fechaCorta(x.fecha))+'</div>'
+    + '<div class="h mono">'+(mostrarLibres?x.fin:x.inicio+' – '+x.fin)+'</div></div>'
+    + '<div class="quien"><b>'+esc(x.nombre)+'</b> <span class="etq '+x.estado+'">'+x.estado+'</span> '
+    + '<span class="etq '+x.modalidad.toLowerCase()+'">'+x.modalidad+'</span>'
+    + '<div class="meta">'+esc(x.email)+' · '+esc(x.telefono)
+    + (x.meet?' · <a href="'+x.meet+'" target="_blank" rel="noopener">Meet</a>':'')+'</div>'
+    + (x.notas?'<div class="nota">“'+esc(x.notas)+'”</div>':'')+'</div>'
+    + '<div class="acc">'
+    + (x.estado==='reservado'?'<button class="btn mini ok" data-acc="confirmar" data-id="'+x.id+'">Confirmar</button>':'')
+    + '<button class="btn mini" data-acc="ver-paciente" data-email="'+esc(x.email)+'">Ficha</button>'
+    + '<button class="btn mini peligro" data-acc="cancelar" data-id="'+x.id+'">Cancelar</button></div></div>';
+}
+
+/* ── Pacientes ────────────────────────────────────────── */
+function vistaPacientes(){
+  let h = '<div class="panel-tope"><div><h1>Pacientes</h1>'
+    + '<div class="sub">Busca por nombre, correo, teléfono o código · incluye el historial archivado</div></div></div>'
+    + '<div class="tarjeta"><div style="display:flex;gap:10px;flex-wrap:wrap">'
+    + '<div class="buscador" style="max-width:none"><input id="q-pac" placeholder="Escribe al menos dos letras" value="'+esc(S.busca)+'"></div>'
+    + '<button class="btn principal" data-acc="buscar-pac">Buscar</button></div>';
+
+  if (S.resultados === null) h += '<p class="libre" style="padding:16px 0">Escribe algo y presiona Buscar.</p>';
+  else if (!S.resultados.length) h += '<p class="libre" style="padding:16px 0">Sin resultados.</p>';
+  else {
+    const vistos = {};
+    const gente = S.resultados.filter(r=>{ if(vistos[r.email]) return false; vistos[r.email]=1; return true; });
+    h += '<div class="lista">' + gente.map(r=>
+      '<div class="ses"><div class="quien"><b>'+esc(r.nombre)+'</b>'
+      + '<div class="meta">'+esc(r.email)+' · '+esc(r.telefono)+'</div></div>'
+      + '<div class="acc"><button class="btn mini" data-acc="ver-paciente" data-email="'+esc(r.email)+'">Ver ficha</button></div></div>'
+    ).join('') + '</div>';
+  }
+  h += '</div>';
+
+  if (S.ficha){
+    const f = S.ficha;
+    h += '<div class="tarjeta"><div style="display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;align-items:flex-start">'
+      + '<div><h3>'+esc(f.nombre)+'</h3><p class="sub" style="margin:3px 0 0">'+esc(f.email)+' · '+esc(f.telefono)+'</p></div>'
+      + '<button class="btn mini" data-acc="cerrar-ficha">Cerrar ficha</button></div>'
+      + '<div class="rejilla" style="margin:14px 0">'
+      + '<div class="dato"><div class="k">Sesiones</div><div class="v">'+f.total+'</div></div>'
+      + '<div class="dato"><div class="k">Por venir</div><div class="v">'+f.proximas+'</div></div></div>'
+      + '<div class="lista">' + f.sesiones.map(s=>
+          '<div class="ses"><div class="cuando"><div class="f">'+fechaCorta(s.fecha)+'</div><div class="h mono">'+s.inicio+'</div></div>'
+          + '<div class="quien"><span class="etq '+s.estado+'">'+s.estado+'</span> '
+          + '<span class="etq '+String(s.modalidad).toLowerCase()+'">'+s.modalidad+'</span>'
+          + (s.historico?' <span class="etq bloqueado">archivada</span>':'')
+          + (s.notas?'<div class="nota">“'+esc(s.notas)+'”</div>':'')+'</div></div>'
+        ).join('') + '</div></div>';
+  }
+  return h;
+}
+
+/* ── Horario ──────────────────────────────────────────── */
+function vistaHorario(){
+  const nom = ['','Lunes','Martes','Miércoles','Jueves','Viernes','Sábado','Domingo'];
+  let h = '<div class="panel-tope"><div><h1>Horario</h1>'
+    + '<div class="sub">La semana que se repite · al guardar se crean las horas que falten hasta '+(S.ajustes.meses||3)+' meses adelante</div></div></div>'
+    + '<div class="tarjeta"><div id="plt">'
+    + S.plantilla.map((b,i)=>filaPlantilla(b,i,nom)).join('')
+    + '</div><div style="display:flex;gap:8px;margin-top:14px;flex-wrap:wrap">'
+    + '<button class="btn" data-acc="plt-agregar">Agregar bloque</button>'
+    + '<button class="btn principal" data-acc="plt-guardar">Guardar y generar horas</button></div>'
+    + '<p class="sub" style="margin:14px 0 0">Las horas ya reservadas no se tocan nunca, pase lo que pase acá.</p></div>';
+  return h;
+}
+
+function filaPlantilla(b,i,nom){
+  const sel=(v,o)=>String(v)===String(o)?' selected':'';
+  return '<div class="bloque-plt" data-i="'+i+'">'
+    + '<select data-c="dia">'+[1,2,3,4,5,6,7].map(d=>'<option value="'+d+'"'+sel(b.dia,d)+'>'+nom[d]+'</option>').join('')+'</select>'
+    + '<input type="time" data-c="desde" step="900" value="'+b.desde+'">'
+    + '<input type="time" data-c="hasta" step="900" value="'+b.hasta+'">'
+    + '<select data-c="modalidad"><option value="Ambas"'+sel(b.modalidad,'Ambas')+'>El paciente elige</option><option value="Online"'+sel(b.modalidad,'Online')+'>Solo online</option><option value="Presencial"'+sel(b.modalidad,'Presencial')+'>Solo presencial</option></select>'
+    + '<button class="btn mini peligro" data-acc="plt-borrar" data-i="'+i+'" aria-label="Quitar bloque">×</button></div>';
+}
+
+function leerPlantilla(){
+  return $$('.bloque-plt').map(f=>({
+    dia:Number($('[data-c=dia]',f).value), desde:$('[data-c=desde]',f).value,
+    hasta:$('[data-c=hasta]',f).value, publico:'Todos',
+    modalidad:$('[data-c=modalidad]',f).value
+  }));
+}
+
+/* ── Mantención ───────────────────────────────────────── */
+function vistaMantencion(){
+  const r = S.resumen;
+  let h = '<div class="panel-tope"><div><h1>Mantención</h1>'
+    + '<div class="sub">El sistema hace todo esto solo cada madrugada</div></div></div>'
+    + '<div class="tarjeta"><h3>Estado</h3><p class="sub">Cómo está la agenda ahora</p><div class="rejilla">'
+    + '<div class="dato"><div class="k">Horas libres</div><div class="v">'+(r.libres||0)+'</div></div>'
+    + '<div class="dato"><div class="k">Tomadas</div><div class="v">'+(r.tomadas||0)+'</div></div>'
+    + '<div class="dato'+(r.porConfirmar?' urge':'')+'"><div class="k">Por confirmar</div><div class="v">'+(r.porConfirmar||0)+'</div></div>'
+    + '<div class="dato"><div class="k">Filas en la hoja</div><div class="v">'+(r.filas||0)+'</div></div>'
+    + '<div class="dato"><div class="k">Correos en cola</div><div class="v">'+(r.enCola||0)+'</div></div>'
+    + '</div></div>';
+
+  h += '<div class="tarjeta"><h3>Tareas</h3><p class="sub">Por si quieres adelantarlas</p>'
+    + '<div style="display:flex;gap:8px;flex-wrap:wrap">'
+    + '<button class="btn" data-acc="regenerar">Crear horas que falten</button>'
+    + '<button class="btn" data-acc="recargar">Recargar</button></div></div>';
+
+  h += '<div class="tarjeta"><h3>Rehacer el horario</h3>'
+    + '<p class="sub">Borra todas las horas libres y bloqueadas desde hoy y las vuelve a crear con la semana tipo vigente. '
+    + 'Las horas con paciente no se tocan. Úsalo solo cuando cambie el horario de fondo.</p>'
+    + '<button class="btn peligro" data-acc="reiniciar">Rehacer horario</button></div>';
+
+  h += '<div class="tarjeta"><h3>Borrar horas antiguas</h3>'
+    + '<p class="sub">Se borran las anteriores a la fecha de corte. Las que tuvieron paciente quedan en la pestaña Historial de la planilla.</p>'
+    + '<div style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end">'
+    + '<div class="campo" style="margin:0;max-width:200px"><label for="p-hasta">Borrar lo anterior a</label>'
+    + '<input type="date" id="p-hasta" value="'+isoMas(isoHoy(),-15)+'"></div>'
+    + '<button class="btn peligro" data-acc="purgar">Borrar</button></div></div>';
+
+  h += '<div class="tarjeta"><h3>Últimos movimientos</h3><p class="sub">Quién hizo qué</p>'
+    + '<button class="btn mini" data-acc="ver-bitacora">Cargar movimientos</button>'
+    + (S.bitacora.length ? '<table class="bitacora" style="margin-top:12px">'
+        + S.bitacora.map(b=>'<tr><td>'+esc(b.fecha)+'</td><td>'+esc(b.quien)+'</td><td><b>'+esc(b.accion)+'</b></td><td>'+esc(b.detalle)+'</td></tr>').join('')
+        + '</table>' : '') + '</div>';
+  return h;
+}
+
+/* ══════════════════════════════════════════════════════════
+   ADMIN — acciones
+   ══════════════════════════════════════════════════════════ */
+function enlazar(cont){
+  $$('[data-acc]', cont).forEach(el=>{
+    if (el.type === 'checkbox') el.addEventListener('change', ()=>accion(el));
+    else el.addEventListener('click', ()=>accion(el));
+  });
+  const qr = $('#q-res', cont);
+  if (qr) qr.addEventListener('input', deb(()=>{ S.busca = qr.value; const p=qr.selectionStart; pintarSeccion(); const n=$('#q-res'); if(n){n.focus(); n.setSelectionRange(p,p);} }, 260));
+  const qp = $('#q-pac', cont);
+  if (qp) qp.addEventListener('keydown', e=>{ if(e.key==='Enter'){ S.busca=qp.value; buscarPacientes(); } });
+}
+function deb(fn,ms){ let t; return (...a)=>{ clearTimeout(t); t=setTimeout(()=>fn(...a),ms) } }
+
+function pintarBarraSel(){
+  const n = S.sel.size;
+  const c = $('#barra-sel');
+  if (!n || !esAdmin()){ c.innerHTML=''; return; }
+  c.innerHTML = '<div class="barra-sel"><b>'+n+' seleccionada'+(n===1?'':'s')+'</b>'
+    + '<button class="btn mini ok" data-acc="lote-confirmar">Confirmar</button>'
+    + '<button class="btn mini" data-acc="lote-liberar">Liberar</button>'
+    + '<button class="btn mini" data-acc="lote-bloquear">Bloquear</button>'
+    + '<button class="btn mini peligro" data-acc="lote-eliminar">Eliminar</button>'
+    + '<button class="btn mini" data-acc="sel-nada">Quitar selección</button></div>';
+  enlazar(c);
+}
+
+async function accion(b){
+  const a = b.dataset.acc, id = b.dataset.id;
+
+  if (a==='sel'){ b.checked ? S.sel.add(id) : S.sel.delete(id); pintarBarraSel(); return; }
+  if (a==='sel-nada'){ S.sel.clear(); pintarSeccion(); return; }
+  if (a==='sel-todo'){
+    $$('[data-acc=sel]').forEach(c=>{ c.checked=true; S.sel.add(c.dataset.id) });
+    pintarBarraSel(); return;
+  }
+
+  if (a==='vista'){ S.vista=b.dataset.v; pintarSeccion(); return; }
+  if (a==='ambito'){ S.ambito=b.dataset.v; S.sel.clear(); pintarSeccion(); return; }
+  if (a==='hoy'){ S.dia=isoHoy(); S.lunes=lunesDe(new Date()); pintarSeccion(); return; }
+  if (a==='dia-'){ S.dia=isoMas(S.dia,-1); pintarSeccion(); return; }
+  if (a==='dia+'){ S.dia=isoMas(S.dia, 1); pintarSeccion(); return; }
+  if (a==='sem-'){ S.lunes=masDias(S.lunes,-7); pintarSeccion(); return; }
+  if (a==='sem+'){ S.lunes=masDias(S.lunes, 7); pintarSeccion(); return; }
+  if (a==='recargar') return cargarAgenda();
+
+  if (a==='confirmar') return ejecutar([id],'confirmar');
+  if (a==='cancelar'){
+    const m = prompt('¿Por qué se cancela? (el paciente lo verá en el correo)');
+    if (m===null) return;
+    return ejecutar([id],'cancelar',m);
+  }
+
+  if (a==='lote-confirmar') return ejecutar([...S.sel],'confirmar');
+  if (a==='lote-liberar'){
+    const conGente = [...S.sel].filter(i=>{const x=hora(i); return x&&ocupada(x)});
+    let m = '';
+    if (conGente.length){
+      m = prompt(conGente.length+' de esas horas tienen paciente. ¿Por qué se cancelan?');
+      if (m===null) return;
+    }
+    return ejecutar([...S.sel],'liberar',m);
+  }
+  if (a==='lote-bloquear'){
+    const m = prompt('Motivo del bloqueo (se avisa solo a quien tenga hora tomada)') ;
+    if (m===null) return;
+    return ejecutar([...S.sel],'bloquear',m);
+  }
+  if (a==='lote-eliminar'){
+    if (!confirm('Se eliminan '+S.sel.size+' horas de la agenda. ¿Seguir?')) return;
+    return ejecutar([...S.sel],'eliminar','');
+  }
+
+  if (a==='bloquear-dia'){
+    const ids = S.agenda.filter(x=>x.fecha===S.dia).map(x=>x.id);
+    const conGente = S.agenda.filter(x=>x.fecha===S.dia && ocupada(x)).length;
+    const m = prompt(conGente ? 'Hay '+conGente+' hora(s) con paciente. Motivo del bloqueo:' : 'Motivo del bloqueo:');
+    if (m===null) return;
+    return ejecutar(ids,'bloquear',m);
+  }
+
+  if (a==='abrir-hora'){ const x=hora(id); if(x) menuHora(x); return; }
+
+  if (a==='crear-hora') return correr(b, ()=>api('crearHora',{
+    fecha:$('#n-fecha').value, inicio:$('#n-hora').value,
+    publico:'Todos', modalidad:$('#n-mod').value }));
+
+  if (a==='regenerar') return correr(b, ()=>api('regenerar'));
+  if (a==='reiniciar'){
+    if (!confirm('Se borran todas las horas libres desde hoy y se recrean con la semana tipo. Las horas con paciente quedan intactas. ¿Seguir?')) return;
+    return correr(b, ()=>api('reiniciar'));
+  }
+  if (a==='purgar'){
+    if (!confirm('Se borran las horas anteriores a esa fecha. Las que tuvieron paciente quedan en Historial. ¿Seguir?')) return;
+    return correr(b, ()=>api('purgar',{ hasta:$('#p-hasta').value }));
+  }
+
+  if (a==='plt-agregar'){ S.plantilla=leerPlantilla(); S.plantilla.push({dia:1,desde:'09:00',hasta:'12:00',publico:'Todos',modalidad:'Ambas'}); pintarSeccion(); return; }
+  if (a==='plt-borrar'){ S.plantilla=leerPlantilla().filter((_,i)=>i!==Number(b.dataset.i)); pintarSeccion(); return; }
+  if (a==='plt-guardar') return correr(b, async ()=>{
+    const r = await api('guardarPlantilla',{ plantilla:leerPlantilla() });
+    return r.ok ? await api('regenerar') : r;
+  });
+
+  if (a==='buscar-pac'){ S.busca=$('#q-pac').value; return buscarPacientes(); }
+  if (a==='ver-paciente'){
+    const r = await api('paciente',{ email:b.dataset.email });
+    if (!r.ok) return tostada(r.error,'mal');
+    S.ficha = r.datos; S.sec='pacientes'; pintarSeccion();
+    window.scrollTo({ top:document.body.scrollHeight, behavior:'smooth' });
+    return;
+  }
+  if (a==='cerrar-ficha'){ S.ficha=null; pintarSeccion(); return; }
+
+  if (a==='ver-bitacora'){
+    const r = await api('bitacora');
+    if (!r.ok) return tostada(r.error,'mal');
+    S.bitacora = r.datos; pintarSeccion(); return;
+  }
+
+  if (a==='estado-hora') return ejecutar([id], b.dataset.estado, '');
+  if (a==='eliminar-hora'){
+    if (!confirm('¿Eliminar esta hora de la agenda?')) return;
+    cerrarModal(); return ejecutar([id],'eliminar','');
+  }
+}
+
+async function buscarPacientes(){
+  const r = await api('buscar',{ q:S.busca });
+  if (!r.ok) return tostada(r.error,'mal');
+  S.resultados = r.datos; pintarSeccion();
+}
+
+async function correr(b, fn){
+  const txt = b.textContent; b.disabled=true; b.textContent='Un momento…';
+  const r = await fn();
+  b.disabled=false; b.textContent=txt;
+  if (!r.ok){ tostada(r.error,'mal'); if(/sesión/i.test(r.error)) salir(); return; }
+  tostada(r.mensaje||'Listo','bien');
+  cargarAgenda();
+}
+
+function menuHora(x){
+  const ocu = ocupada(x);
+  modal('<div class="modal-tope"><div><h2 style="text-transform:capitalize">'+fechaCorta(x.fecha)+' · '+x.inicio+'</h2>'
+    + '<div class="cuando">'+(x.oferta==='Ambas'?'El paciente elige':x.oferta)+' · '+x.estado+'</div></div>'
+    + '<button class="cerrar" id="x" aria-label="Cerrar">×</button></div><div class="modal-cuerpo">'
+    + (ocu?'<div class="aviso info"><b>'+esc(x.nombre)+'</b><br>'+esc(x.email)+' · '+esc(x.telefono)
+         + (x.notas?'<br><i>“'+esc(x.notas)+'”</i>':'')+'</div>':'')
+    + '<div style="display:flex;flex-direction:column;gap:8px">'
+    + (x.estado==='reservado'?'<button class="btn ok" data-acc="estado-hora" data-estado="confirmar" data-id="'+x.id+'">Confirmar la hora</button>':'')
+    + (x.estado!=='disponible'?'<button class="btn" data-acc="estado-hora" data-estado="liberar" data-id="'+x.id+'">Dejar disponible'+(ocu?' y avisar al paciente':'')+'</button>':'')
+    + (x.estado!=='bloqueado'?'<button class="btn" data-acc="estado-hora" data-estado="bloquear" data-id="'+x.id+'">Bloquear esta hora</button>':'')
+    + (ocu?'<button class="btn" data-acc="ver-paciente" data-email="'+esc(x.email)+'">Ver ficha del paciente</button>':'')
+    + '<button class="btn peligro" data-acc="eliminar-hora" data-id="'+x.id+'">Eliminar de la agenda</button>'
+    + '</div></div>');
+  $('#x').addEventListener('click', cerrarModal);
+  enlazar($('#modales'));
+}
+
+/* ══════════════════════════════════════════════════════════
+   ARRANQUE
+   ══════════════════════════════════════════════════════════ */
+$('#marca-nombre').textContent = CONFIG.NOMBRE;
+$('#pie-nombre').textContent   = CONFIG.NOMBRE;
+$('#bajada').textContent       = CONFIG.BAJADA;
+$('#sello').textContent        = CONFIG.NOMBRE.trim()[0].toUpperCase();
+
+if (CONFIG.FOTO){
+  $('#retrato').innerHTML = '<img src="'+CONFIG.FOTO+'" alt="Foto de '+esc(CONFIG.NOMBRE)+'">'
+    + (CONFIG.FOTO_PIE ? '<small>'+esc(CONFIG.FOTO_PIE)+'</small>' : '');
+  $('#retrato').classList.remove('oculto');
+  $('#sello').innerHTML = '<img src="'+CONFIG.FOTO+'" alt="">';
+}
+
+if (!CONFIG.API){
+  $('#aviso-config').innerHTML = '<div class="aviso mal"><b>Falta conectar la agenda.</b><br>'
+    + 'Abre <code>index.html</code>, busca <code>window.CONFIG</code> arriba del todo y pega en <code>API</code> '
+    + 'la URL que termina en <code>/exec</code> que entrega Apps Script al implementar la aplicación web.</div>';
+}
+
+$('#sem-atras').addEventListener('click', ()=>{ S.lunes=masDias(S.lunes,-7); pintarTablero() });
+$('#sem-adelante').addEventListener('click', ()=>{ S.lunes=masDias(S.lunes, 7); pintarTablero() });
+$('#sem-hoy').addEventListener('click', ()=>{ S.lunes=lunesDe(new Date()); pintarTablero() });
+$('#btn-mi-hora').addEventListener('click', abrirMiHora);
+$('#btn-salir').addEventListener('click', salir);
+$('#btn-pin').addEventListener('click', entrarConPin);
+$('#pin').addEventListener('keydown', e=>{ if(e.key==='Enter') entrarConPin() });
+
+
+$$('.nav-it').forEach(b=>b.addEventListener('click', ()=>{
+  S.sec=b.dataset.sec; S.sel.clear();
+  if (S.sec!=='reservas' && S.sec!=='pacientes') S.busca='';
+  pintarSeccion();
+}));
+
+let tr; window.addEventListener('resize', ()=>{ clearTimeout(tr); tr=setTimeout(()=>{ if(!esAdmin()) pintarTablero() },180) });
+window.addEventListener('hashchange', enrutar);
+window.addEventListener('load', ()=>{ if(esAdmin() && !S.token) prepararGoogle() });
+enrutar();
+</script>
+</body>
+</html>
