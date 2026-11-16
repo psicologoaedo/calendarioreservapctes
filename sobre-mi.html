@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="es-CL">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sobre mí — Ps. Cristóbal Aedo</title>
+<meta name="description" content="Psicólogo con atención a niños, niñas, adolescentes, adultos y familias. Neurodivergencias, ansiedad, ánimo y enfoque sistémico. Providencia y online.">
+<meta property="og:title" content="Ps. Cristóbal Aedo — Psicólogo">
+<meta property="og:description" content="Atención a niños, adolescentes, adultos y familias. Presencial en Providencia u online.">
+<meta property="og:image" content="foto.jpg">
+<meta property="og:type" content="profile">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,600;12..96,800&family=Public+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+
+<style>
+:root{
+  --ink:#2E2A38; --ink-2:#5B5566; --mute:#8A8394;
+  --paper:#F7F5FA; --surf:#fff; --line:#E7E2F0; --line-2:#F1EEF7;
+  --accent:#5B4B8A; --accent-soft:#EFE9F8; --accent-ink:#3D3160;
+  --wsp:#25D366;
+  --sombra:0 1px 2px rgba(46,42,56,.05), 0 8px 24px -12px rgba(46,42,56,.18);
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--paper);color:var(--ink);
+     font-family:'Public Sans',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;
+     font-size:16.5px;line-height:1.62;-webkit-font-smoothing:antialiased}
+h1,h2,h3{font-family:'Bricolage Grotesque','Public Sans',sans-serif;margin:0;line-height:1.14;letter-spacing:-.015em}
+a{color:var(--accent)}
+.caja{max-width:980px;margin:0 auto;padding:0 22px}
+
+/* ── Barra superior ───────────────────────────────────── */
+.tope{background:var(--surf);border-bottom:1px solid var(--line);position:sticky;top:0;z-index:20}
+.tope .caja{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:14px 22px}
+.tope b{font-family:'Bricolage Grotesque',sans-serif;font-size:16.5px;font-weight:600}
+.tope nav{display:flex;gap:16px;align-items:center;font-size:14.5px}
+.tope nav a{color:var(--ink-2);text-decoration:none}
+.tope nav a:hover{color:var(--ink)}
+.btn{display:inline-block;font:inherit;font-weight:600;font-size:14.5px;border-radius:9px;
+     padding:10px 17px;border:1px solid var(--line);background:var(--surf);color:var(--ink);
+     cursor:pointer;text-decoration:none;transition:.15s;white-space:nowrap}
+.btn:hover{border-color:#CFC5E4;background:#FCFBFE}
+.btn.principal{background:var(--accent);border-color:var(--accent);color:#fff}
+.btn.principal:hover{background:#4C3E76}
+.btn.wsp{background:var(--wsp);border-color:var(--wsp);color:#fff}
+.btn.wsp:hover{background:#1FBA59}
+.btn:focus-visible{outline:2.5px solid var(--accent);outline-offset:2px}
+
+/* ── Presentación ─────────────────────────────────────── */
+.presenta{padding:56px 0 20px;display:grid;grid-template-columns:230px 1fr;gap:42px;align-items:start}
+.retrato img{width:230px;height:230px;border-radius:22px;object-fit:cover;
+             border:1px solid var(--line);box-shadow:var(--sombra);display:block}
+.oficio{font-size:13px;letter-spacing:.14em;text-transform:uppercase;color:var(--accent);font-weight:600}
+.presenta h1{font-size:clamp(32px,5vw,46px);font-weight:800;margin:10px 0 0}
+.lead{font-size:18.5px;color:var(--ink-2);margin:16px 0 0;max-width:46ch}
+.acciones{display:flex;gap:10px;flex-wrap:wrap;margin-top:24px}
+
+/* ── Secciones ────────────────────────────────────────── */
+section{padding:34px 0}
+.titulo{font-size:12.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--mute);
+        font-weight:600;margin-bottom:16px}
+h2{font-size:25px;font-weight:600;margin-bottom:14px}
+p{margin:0 0 15px;color:var(--ink-2)}
+p:last-child{margin-bottom:0}
+
+.tarjetas{display:grid;grid-template-columns:repeat(auto-fit,minmax(248px,1fr));gap:14px}
+.tarjeta{background:var(--surf);border:1px solid var(--line);border-radius:14px;padding:20px;box-shadow:var(--sombra)}
+.tarjeta h3{font-size:17px;font-weight:600;margin-bottom:8px}
+.tarjeta p{font-size:15px;margin:0}
+.tarjeta ul{margin:8px 0 0;padding-left:18px;color:var(--ink-2);font-size:15px}
+.tarjeta li{margin-bottom:5px}
+
+.banda{background:var(--surf);border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
+
+/* ── Formación ────────────────────────────────────────── */
+.grupo{margin-bottom:26px}
+.grupo:last-child{margin-bottom:0}
+.grupo h3{font-size:15px;font-weight:600;margin-bottom:10px;padding-bottom:7px;border-bottom:1px solid var(--line)}
+.item{display:flex;gap:14px;padding:9px 0;align-items:baseline;flex-wrap:wrap}
+.item .anio{flex:none;width:92px;font-size:13.5px;color:var(--mute);font-variant-numeric:tabular-nums}
+.item .qu{flex:1 1 260px;min-width:0;font-size:15.5px}
+.item .qu b{font-weight:600}
+.item .qu span{color:var(--mute);display:block;font-size:14px}
+
+/* ── Modalidad ────────────────────────────────────────── */
+.datos{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:14px;margin-top:4px}
+.dato{background:var(--accent-soft);border-radius:12px;padding:16px 18px}
+.dato .k{font-size:11.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--accent);font-weight:600}
+.dato .v{font-family:'Bricolage Grotesque',sans-serif;font-size:18px;font-weight:600;margin-top:3px;line-height:1.3}
+.dato .v small{display:block;font-family:'Public Sans',sans-serif;font-size:13.5px;font-weight:400;color:var(--ink-2);margin-top:3px}
+
+/* ── Cierre ───────────────────────────────────────────── */
+.cierre{text-align:center;padding:52px 0 44px}
+.cierre h2{font-size:clamp(25px,3.6vw,34px);font-weight:800;max-width:17ch;margin:0 auto}
+.cierre p{max-width:48ch;margin:14px auto 0}
+.cierre .acciones{justify-content:center;margin-top:26px}
+
+.pie{background:var(--surf);border-top:1px solid var(--line)}
+.pie .caja{padding:24px 22px;display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap;
+           font-size:13.5px;color:var(--mute)}
+.pie a{color:var(--ink-2);text-decoration:none;border-bottom:1px solid var(--line)}
+
+@media (max-width:820px){
+  .presenta{grid-template-columns:1fr;gap:24px;padding-top:36px}
+  .retrato img{width:150px;height:150px}
+  .tope nav a:not(.btn){display:none}
+}
+</style>
+</head>
+<body>
+
+<header class="tope">
+  <div class="caja">
+    <b>Ps. Cristóbal Aedo</b>
+    <nav>
+      <a href="#atencion">Qué atiendo</a>
+      <a href="#formacion">Formación</a>
+      <a href="index.html" class="btn principal">Reservar hora</a>
+    </nav>
+  </div>
+</header>
+
+<main>
+
+<div class="caja">
+  <section class="presenta">
+    <div class="retrato">
+      <img src="foto.jpg" alt="Retrato de Cristóbal Aedo">
+    </div>
+    <div>
+      <div class="oficio">Psicólogo</div>
+      <h1>Cristóbal Aedo Rozas</h1>
+      <p class="lead">Acompaño a niños, niñas, adolescentes, adultos y familias. Trabajo
+      especialmente con neurodivergencias, ansiedad y dificultades del ánimo, desde una
+      mirada que no separa a la persona del sistema que habita.</p>
+      <div class="acciones">
+        <a class="btn principal" href="index.html">Reservar una hora</a>
+        <a class="btn wsp" id="wsp-1" href="#" target="_blank" rel="noopener">Escribir por WhatsApp</a>
+        <a class="btn" href="mailto:ps.cristobalaedo@gmail.com">Enviar un correo</a>
+      </div>
+    </div>
+  </section>
+</div>
+
+<div class="banda">
+  <div class="caja">
+    <section id="atencion">
+      <div class="titulo">Qué atiendo</div>
+      <div class="tarjetas">
+        <div class="tarjeta">
+          <h3>Neurodivergencias</h3>
+          <p>Evaluación y acompañamiento en TDAH, autismo, altas capacidades y alta
+          sensibilidad, en niños, niñas, adolescentes y adultos.</p>
+        </div>
+        <div class="tarjeta">
+          <h3>Ansiedad y ánimo</h3>
+          <p>Cuadros ansiosos y trastornos del ánimo, con foco en entender qué los
+          sostiene en el día a día y no solo en nombrarlos.</p>
+        </div>
+        <div class="tarjeta">
+          <h3>Familia y parentalidad</h3>
+          <p>Desde el enfoque sistémico: procesos de separación, habilidades parentales,
+          duelo y situaciones de alta complejidad.</p>
+        </div>
+        <div class="tarjeta">
+          <h3>Atención conjunta</h3>
+          <p>Para niños, niñas, adolescentes y sus cuidadores, en trabajo coordinado con
+          médico infectólogo pediátrico y residente de psiquiatría infantojuvenil.</p>
+        </div>
+      </div>
+    </section>
+  </div>
+</div>
+
+<div class="caja">
+  <section>
+    <div class="titulo">Cómo trabajo</div>
+    <h2>Una mirada relacional</h2>
+    <p>Antes de la psicología estudié Terapia en Actividad Física y Salud. Esa primera
+    formación me dejó una convicción que sigue ordenando mi trabajo: el malestar y el
+    bienestar no ocurren en el vacío, sino en la interacción constante entre la mente, el
+    cuerpo y el entorno.</p>
+    <p>Por eso, cuando acompaño a un niño, una niña o un adolescente, me interesa conocer
+    también a quienes lo rodean. El abordaje puramente individual suele quedarse corto:
+    los cambios que de verdad se sostienen en el tiempo necesitan que el sistema familiar
+    sea parte del proceso. Con adultos ocurre algo parecido, aunque las conversaciones
+    tomen otra forma.</p>
+    <p>Mi compromiso es ejercer una psicoterapia sensible, humanizada y rigurosa, en
+    diálogo con otros profesionales cuando el caso lo necesita.</p>
+
+    <div class="datos">
+      <div class="dato">
+        <div class="k">Duración</div>
+        <div class="v">50 minutos<small>Por sesión</small></div>
+      </div>
+      <div class="dato">
+        <div class="k">Modalidad</div>
+        <div class="v">Presencial u online<small>Tú eliges al reservar</small></div>
+      </div>
+      <div class="dato">
+        <div class="k">Consulta</div>
+        <div class="v">Providencia<small>Doctor Manuel Barros Borgoño 110, of. 1001</small></div>
+      </div>
+      <div class="dato">
+        <div class="k">Online</div>
+        <div class="v">Google Meet<small>El enlace llega por correo</small></div>
+      </div>
+    </div>
+  </section>
+</div>
+
+<div class="banda">
+  <div class="caja">
+    <section id="formacion">
+      <div class="titulo">Formación</div>
+
+      <div class="grupo">
+        <h3>Títulos profesionales</h3>
+        <div class="item"><div class="anio">2021 – 2025</div>
+          <div class="qu"><b>Psicólogo</b><span>Licenciado en Psicología · Universidad San Sebastián</span></div></div>
+        <div class="item"><div class="anio">2008 – 2012</div>
+          <div class="qu"><b>Terapeuta en Actividad Física y Salud</b><span>Licenciado en Ciencias de la Actividad Física · Universidad de Santiago de Chile</span></div></div>
+      </div>
+
+      <div class="grupo">
+        <h3>Diplomados</h3>
+        <div class="item"><div class="anio">2026</div>
+          <div class="qu"><b>Evaluación Psicológica Infantojuvenil desde un Abordaje Multinivel</b><span>Universidad del Desarrollo</span></div></div>
+        <div class="item"><div class="anio">2026</div>
+          <div class="qu"><b>Terapia Familiar: Estrategias para la Intervención Clínica y Comunitaria</b><span>ADIPA</span></div></div>
+        <div class="item"><div class="anio">2025</div>
+          <div class="qu"><b>Psicopatología Infanto Juvenil</b><span>JCCD Capacitaciones</span></div></div>
+        <div class="item"><div class="anio">2025</div>
+          <div class="qu"><b>Salud Mental y Adicciones</b><span>JCCD Capacitaciones</span></div></div>
+      </div>
+
+      <div class="grupo">
+        <h3>Cursos de especialización</h3>
+        <div class="item"><div class="anio">2026</div>
+          <div class="qu"><b>Terapia de Aceptación y Compromiso con niños, niñas y adolescentes desde la RFT</b><span>ADIPA</span></div></div>
+        <div class="item"><div class="anio">2026</div>
+          <div class="qu"><b>Diagnósticos diferenciales en neurodivergencia: autismo, TDAH y altas capacidades</b><span>ADIPA</span></div></div>
+        <div class="item"><div class="anio">2025</div>
+          <div class="qu"><b>Estrategias mhGAP para trastornos mentales, neurológicos y consumo de sustancias</b><span>Instituto ICEP</span></div></div>
+        <div class="item"><div class="anio">2025</div>
+          <div class="qu"><b>Igualdad de Género y Diversidad Sexual</b><span>Instituto ICEP</span></div></div>
+      </div>
+
+      <div class="grupo">
+        <h3>Certificación</h3>
+        <div class="item"><div class="anio">2025</div>
+          <div class="qu"><b>Gestor de Inclusión Laboral</b><span>Chilealimentos · código P-7830-2423-001-v01</span></div></div>
+      </div>
+    </section>
+  </div>
+</div>
+
+<div class="caja">
+  <section class="cierre">
+    <h2>Si crees que puedo acompañarte, conversemos</h2>
+    <p>Puedes tomar una hora directamente en la agenda, o escribirme antes si prefieres
+    resolver alguna duda primero. Las dos cosas están bien.</p>
+    <div class="acciones">
+      <a class="btn principal" href="index.html">Ver horas disponibles</a>
+      <a class="btn wsp" id="wsp-2" href="#" target="_blank" rel="noopener">Escribir por WhatsApp</a>
+      <a class="btn" href="mailto:ps.cristobalaedo@gmail.com">Enviar un correo</a>
+      <a class="btn" id="mapa" href="#" target="_blank" rel="noopener">Cómo llegar</a>
+    </div>
+  </section>
+</div>
+
+</main>
+
+<footer class="pie">
+  <div class="caja">
+    <span>Cristóbal Aedo Rozas · Psicólogo</span>
+    <span>
+      <a href="index.html">Reservar hora</a> ·
+      <a href="privacidad.html">Privacidad</a> ·
+      <a href="terminos.html">Condiciones</a>
+    </span>
+  </div>
+</footer>
+
+<script>
+/* Enlaces armados en un solo lugar, para cambiarlos sin tocar el resto. */
+const CONTACTO = {
+  telefono : '+56961551360',
+  mensaje  : 'Hola, Cris. Vi tu sitio y tengo una consulta',
+  direccion: 'Doctor Manuel Barros Borgoño 110, of. 1001, Providencia'
+};
+
+const wsp = 'https://api.whatsapp.com/send/?phone=' + CONTACTO.telefono.replace(/\D/g,'')
+          + '&text=' + encodeURIComponent(CONTACTO.mensaje) + '&type=phone_number&app_absent=0';
+document.getElementById('wsp-1').href = wsp;
+document.getElementById('wsp-2').href = wsp;
+document.getElementById('mapa').href =
+  'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(CONTACTO.direccion);
+</script>
+
+</body>
+</html>
